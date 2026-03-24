@@ -38,6 +38,14 @@ lerna-debug.log*
 **/playwright-report/
 **/test-results/
 
+# Tests and local test-only content
+**/e2e/
+**/cypress/
+**/__fixtures__/
+**/fixtures/
+**/test-data/
+**/tests/data/
+
 # Vite / misc generated folders
 .vite/
 **/.vite/
@@ -60,3 +68,11 @@ frontend/android/app/debug/
 # Snapshot archives (optional large artifacts)
 app-snapshots/
 app-snapshots/*.zip
+
+# Local databases / dumps / backups
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+*.tmp

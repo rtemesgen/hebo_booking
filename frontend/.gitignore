@@ -43,8 +43,14 @@ __screenshots__/
 *.timestamp-*-*.mjs
 
 # Playwright
+e2e/
 playwright-report/
 test-results/
+
+# Local test fixtures/data
+__fixtures__/
+fixtures/
+test-data/
 
 # Capacitor / Android
 android/.gradle/
