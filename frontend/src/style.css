@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  :root {
+    --hebo-bg: #ece9df;
+    --hebo-card: #fffdfa;
+    --hebo-text: #1c2338;
+  }
+
+  body {
+    background: var(--hebo-bg);
+    color: var(--hebo-text);
+  }
+}

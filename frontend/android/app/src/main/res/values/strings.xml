@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hebo Books</string>
+    <string name="title_activity_main">Hebo Books</string>
+    <string name="package_name">com.hebo.books</string>
+    <string name="custom_url_scheme">com.hebo.books</string>
+</resources>
