@@ -4,6 +4,7 @@ import { withTransaction } from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireTenantMembership } from '../middleware/tenant.js'
 import { createId } from '../utils/ids.js'
+import { sendServerError } from '../utils/http.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -218,7 +219,7 @@ router.post('/batch', async (req, res) => {
           output.push({
             syncId: change.syncId,
             status: 'failed',
-            error: error.message || 'Sync failed',
+            error: 'Sync failed',
           })
         }
       }
@@ -228,7 +229,7 @@ router.post('/batch', async (req, res) => {
 
     return res.json({ results })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Sync processing failed' })
+    return sendServerError(res, error, 'Sync processing failed')
   }
 })
 

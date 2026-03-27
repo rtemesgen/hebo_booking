@@ -22,6 +22,8 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 button,
@@ -30,11 +32,20 @@ select {
   font: inherit;
 }
 
+html,
+body,
 #app {
-  min-height: 100vh;
+  height: 100%;
 }
 
 .app-shell {
-  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+div[class*='fixed'][class*='items-end'] > section {
+  max-height: calc(100dvh - 1rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 </style>

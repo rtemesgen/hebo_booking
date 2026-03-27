@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js'
+import { sendServerError } from '../utils/http.js'
 
 export async function requireTenantMembership(req, res, next) {
   const { tenantId, userId } = req.auth || {}
@@ -20,6 +21,6 @@ export async function requireTenantMembership(req, res, next) {
     req.auth.role = result.rows[0].role
     return next()
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Membership check failed' })
+    return sendServerError(res, error, 'Membership check failed')
   }
 }

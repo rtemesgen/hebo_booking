@@ -79,3 +79,24 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   after_state JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_businesses_tenant_created_at
+  ON businesses (tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_books_tenant_updated_at
+  ON books (tenant_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_books_tenant_business
+  ON books (tenant_id, business_id);
+
+CREATE INDEX IF NOT EXISTS idx_records_tenant_book_created_at
+  ON records (tenant_id, book_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_records_tenant_business
+  ON records (tenant_id, business_id);
+
+CREATE INDEX IF NOT EXISTS idx_sync_operations_tenant_created_at
+  ON sync_operations (tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_created_at
+  ON audit_logs (tenant_id, created_at DESC);

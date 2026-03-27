@@ -2,10 +2,13 @@ import express from 'express'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { pool, withTransaction } from '../db/pool.js'
+import { authRateLimit } from '../middleware/security.js'
 import { createId } from '../utils/ids.js'
 import { signAccessToken } from '../utils/auth.js'
+import { sendServerError } from '../utils/http.js'
 
 const router = express.Router()
+router.use(authRateLimit)
 
 const registerSchema = z.object({
   fullName: z.string().min(2),
@@ -78,7 +81,7 @@ router.post('/register', async (req, res) => {
       tenant: { id: result.tenantId, name: tenantName.trim() },
     })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Registration failed' })
+    return sendServerError(res, error, 'Registration failed')
   }
 })
 
@@ -121,8 +124,12 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: 'User does not belong to tenant' })
     }
 
-    const resolvedMembership =
-      memberships.rows.find((row) => row.tenant_id === tenantId) || memberships.rows[0]
+    const requestedMembership = memberships.rows.find((row) => row.tenant_id === tenantId)
+    if (tenantId && !requestedMembership) {
+      return res.status(403).json({ message: 'Requested tenant is not allowed for this user' })
+    }
+
+    const resolvedMembership = requestedMembership || memberships.rows[0]
     const resolvedTenantId = resolvedMembership.tenant_id
     const role = resolvedMembership.role
     const accessToken = signAccessToken({
@@ -142,7 +149,7 @@ router.post('/login', async (req, res) => {
       role,
     })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Login failed' })
+    return sendServerError(res, error, 'Login failed')
   }
 })
 

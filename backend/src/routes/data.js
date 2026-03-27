@@ -2,6 +2,7 @@ import express from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireTenantMembership } from '../middleware/tenant.js'
+import { sendServerError } from '../utils/http.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -33,7 +34,7 @@ router.get('/snapshot', async (req, res) => {
       records: recordsResult.rows,
     })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not load tenant data' })
+    return sendServerError(res, error, 'Could not load tenant data')
   }
 })
 

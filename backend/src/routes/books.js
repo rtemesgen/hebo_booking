@@ -1,9 +1,10 @@
 import express from 'express'
 import { z } from 'zod'
-import { pool } from '../db/pool.js'
+import { pool, withTransaction } from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireTenantMembership } from '../middleware/tenant.js'
 import { createId } from '../utils/ids.js'
+import { sendServerError } from '../utils/http.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -51,7 +52,7 @@ router.get('/', async (req, res) => {
     )
     return res.json({ books: result.rows })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not fetch books' })
+    return sendServerError(res, error, 'Could not fetch books')
   }
 })
 
@@ -80,7 +81,7 @@ router.post('/', async (req, res) => {
     )
     return res.status(201).json({ book: result.rows[0] })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not create book' })
+    return sendServerError(res, error, 'Could not create book')
   }
 })
 
@@ -122,7 +123,7 @@ router.patch('/:id', async (req, res) => {
     )
     return res.json({ book: result.rows[0] })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not update book' })
+    return sendServerError(res, error, 'Could not update book')
   }
 })
 
@@ -135,7 +136,7 @@ router.delete('/:id', async (req, res) => {
     )
     return res.status(204).send()
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not delete book' })
+    return sendServerError(res, error, 'Could not delete book')
   }
 })
 
@@ -172,7 +173,7 @@ router.post('/:id/move', async (req, res) => {
 
     return res.json({ moved: true })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not move book' })
+    return sendServerError(res, error, 'Could not move book')
   }
 })
 
@@ -202,49 +203,51 @@ router.post('/:id/copy', async (req, res) => {
     const newBookId = createId('book')
     const copiedName = `${source.name} Copy`
 
-    await pool.query(
-      `INSERT INTO books (id, tenant_id, business_id, name, currency, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, now(), now())`,
-      [newBookId, tenantId, parsed.data.targetBusinessId, copiedName, source.currency || 'UGX'],
-    )
-
-    const recordsResult = await pool.query(
-      `SELECT type, amount, note, contact, category, payment_mode, date, time, attachments
-       FROM records
-       WHERE book_id = $1 AND tenant_id = $2`,
-      [req.params.id, tenantId],
-    )
-
-    for (const row of recordsResult.rows) {
-      await pool.query(
-        `INSERT INTO records (
-          id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-          payment_mode, date, time, attachments, created_at, updated_at
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9,
-          $10, $11, $12, $13::jsonb, now(), now()
-        )`,
-        [
-          createId('record'),
-          tenantId,
-          parsed.data.targetBusinessId,
-          newBookId,
-          row.type,
-          row.amount,
-          row.note || '',
-          row.contact || '',
-          row.category || '',
-          row.payment_mode || 'Cash',
-          row.date,
-          row.time,
-          JSON.stringify(Array.isArray(row.attachments) ? row.attachments : []),
-        ],
+    await withTransaction(async (client) => {
+      await client.query(
+        `INSERT INTO books (id, tenant_id, business_id, name, currency, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, now(), now())`,
+        [newBookId, tenantId, parsed.data.targetBusinessId, copiedName, source.currency || 'UGX'],
       )
-    }
+
+      const recordsResult = await client.query(
+        `SELECT type, amount, note, contact, category, payment_mode, date, time, attachments
+         FROM records
+         WHERE book_id = $1 AND tenant_id = $2`,
+        [req.params.id, tenantId],
+      )
+
+      for (const row of recordsResult.rows) {
+        await client.query(
+          `INSERT INTO records (
+            id, tenant_id, business_id, book_id, type, amount, note, contact, category,
+            payment_mode, date, time, attachments, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9,
+            $10, $11, $12, $13::jsonb, now(), now()
+          )`,
+          [
+            createId('record'),
+            tenantId,
+            parsed.data.targetBusinessId,
+            newBookId,
+            row.type,
+            row.amount,
+            row.note || '',
+            row.contact || '',
+            row.category || '',
+            row.payment_mode || 'Cash',
+            row.date,
+            row.time,
+            JSON.stringify(Array.isArray(row.attachments) ? row.attachments : []),
+          ],
+        )
+      }
+    })
 
     return res.status(201).json({ copiedBookId: newBookId })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not copy book' })
+    return sendServerError(res, error, 'Could not copy book')
   }
 })
 
@@ -265,49 +268,51 @@ router.post('/:id/duplicate', async (req, res) => {
     const newBookId = createId('book')
     const copiedName = `${source.name} Copy`
 
-    await pool.query(
-      `INSERT INTO books (id, tenant_id, business_id, name, currency, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, now(), now())`,
-      [newBookId, tenantId, source.business_id, copiedName, source.currency || 'UGX'],
-    )
-
-    const recordsResult = await pool.query(
-      `SELECT type, amount, note, contact, category, payment_mode, date, time, attachments
-       FROM records
-       WHERE book_id = $1 AND tenant_id = $2`,
-      [source.id, tenantId],
-    )
-
-    for (const row of recordsResult.rows) {
-      await pool.query(
-        `INSERT INTO records (
-          id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-          payment_mode, date, time, attachments, created_at, updated_at
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9,
-          $10, $11, $12, $13::jsonb, now(), now()
-        )`,
-        [
-          createId('record'),
-          tenantId,
-          source.business_id,
-          newBookId,
-          row.type,
-          row.amount,
-          row.note || '',
-          row.contact || '',
-          row.category || '',
-          row.payment_mode || 'Cash',
-          row.date,
-          row.time,
-          JSON.stringify(Array.isArray(row.attachments) ? row.attachments : []),
-        ],
+    await withTransaction(async (client) => {
+      await client.query(
+        `INSERT INTO books (id, tenant_id, business_id, name, currency, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, now(), now())`,
+        [newBookId, tenantId, source.business_id, copiedName, source.currency || 'UGX'],
       )
-    }
+
+      const recordsResult = await client.query(
+        `SELECT type, amount, note, contact, category, payment_mode, date, time, attachments
+         FROM records
+         WHERE book_id = $1 AND tenant_id = $2`,
+        [source.id, tenantId],
+      )
+
+      for (const row of recordsResult.rows) {
+        await client.query(
+          `INSERT INTO records (
+            id, tenant_id, business_id, book_id, type, amount, note, contact, category,
+            payment_mode, date, time, attachments, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9,
+            $10, $11, $12, $13::jsonb, now(), now()
+          )`,
+          [
+            createId('record'),
+            tenantId,
+            source.business_id,
+            newBookId,
+            row.type,
+            row.amount,
+            row.note || '',
+            row.contact || '',
+            row.category || '',
+            row.payment_mode || 'Cash',
+            row.date,
+            row.time,
+            JSON.stringify(Array.isArray(row.attachments) ? row.attachments : []),
+          ],
+        )
+      }
+    })
 
     return res.status(201).json({ duplicatedBookId: newBookId })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not duplicate book' })
+    return sendServerError(res, error, 'Could not duplicate book')
   }
 })
 

@@ -4,6 +4,7 @@ import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireTenantMembership } from '../middleware/tenant.js'
 import { createId } from '../utils/ids.js'
+import { sendServerError } from '../utils/http.js'
 
 const router = express.Router()
 
@@ -26,7 +27,7 @@ router.get('/me', async (req, res) => {
 
     return res.json({ tenant: result.rows[0] })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not load tenant' })
+    return sendServerError(res, error, 'Could not load tenant')
   }
 })
 
@@ -45,7 +46,7 @@ router.get('/businesses', async (req, res) => {
     )
     return res.json({ businesses: result.rows })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not load businesses' })
+    return sendServerError(res, error, 'Could not load businesses')
   }
 })
 
@@ -69,7 +70,7 @@ router.post('/businesses', async (req, res) => {
       },
     })
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Could not create business' })
+    return sendServerError(res, error, 'Could not create business')
   }
 })
 

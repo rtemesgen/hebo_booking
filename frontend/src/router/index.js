@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
+import { hasMeaningfulTenantData, ONBOARDING_KEY } from './onboarding'
 
 const routes = [
   {
@@ -73,43 +73,13 @@ const router = createRouter({
   routes,
 })
 
-const ONBOARDING_KEY = 'hebo.onboarding.completed.v1'
-const BUSINESSES_KEY = 'hebo.businesses.v1'
-
-function hasMeaningfulTenantData() {
-  if (typeof window === 'undefined') {
-    return true
-  }
-
-  try {
-    const raw = window.localStorage.getItem(BUSINESSES_KEY)
-    if (!raw) {
-      return false
-    }
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed) || !parsed.length) {
-      return false
-    }
-
-    if (parsed.length > 1) {
-      return true
-    }
-
-    const first = parsed[0] || {}
-    const name = (first.name || '').trim()
-    return name !== 'My Business' || Boolean(first.email) || Boolean(first.phone)
-  } catch {
-    return false
-  }
-}
-
 router.beforeEach((to) => {
   if (typeof window === 'undefined') {
     return true
   }
 
   const isOnboardedFlag = window.localStorage.getItem(ONBOARDING_KEY) === 'true'
-  const isOnboarded = isOnboardedFlag || hasMeaningfulTenantData()
+  const isOnboarded = isOnboardedFlag || hasMeaningfulTenantData(window.localStorage)
   if (isOnboarded && !isOnboardedFlag) {
     window.localStorage.setItem(ONBOARDING_KEY, 'true')
   }

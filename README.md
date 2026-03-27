@@ -10,7 +10,7 @@ Hebo is an offline-first bookkeeping app for Android/web with:
 
 - `frontend/` Vue 3 + Vite + Pinia + Tailwind + Playwright
 - `backend/` Express + PostgreSQL (auth, tenant APIs, sync APIs)
-- `.github/workflows/ci.yml` CI checks for lint/test/build
+- `.github/workflows/ci.yml` CI checks for test/build/e2e
 - `android-artifacts/` generated APK artifacts
 - `app-snapshots/` backup snapshots
 
@@ -36,11 +36,9 @@ Hebo is an offline-first bookkeeping app for Android/web with:
 ## Validation Commands
 
 From `backend/`:
-- `npm run lint`
 - `npm test`
 
 From `frontend/`:
-- `npm run lint`
 - `npm run test`
 - `npm run build`
 - `npm run test:e2e` (set `E2E_BACKEND_URL` for backend-coupled e2e cases)

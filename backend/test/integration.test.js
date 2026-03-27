@@ -245,3 +245,256 @@ test('sync batch writes and snapshot returns synced data', async () => {
   assert.equal(snapshot.body.books.some((item) => item.id === bookId), true)
   assert.equal(snapshot.body.records.some((item) => item.id === recordId), true)
 })
+
+test('login rejects tenantId not owned by the user', async () => {
+  const stamp = Date.now()
+  const email = `tenant-check-${stamp}@hebo.test`
+
+  const register = await request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fullName: 'Tenant Check User',
+      email,
+      password: 'Pass1234',
+      tenantName: `TenantCheck-${stamp}`,
+    }),
+  })
+  assert.equal(register.response.status, 201)
+
+  const login = await request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      password: 'Pass1234',
+      tenantId: 'ten-not-owned',
+    }),
+  })
+
+  assert.equal(login.response.status, 403)
+})
+
+test('book duplicate and cross-business copy clone records', async () => {
+  const stamp = Date.now()
+  const user = await request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fullName: 'Copy User',
+      email: `book-copy-${stamp}@hebo.test`,
+      password: 'Pass1234',
+      tenantName: `CopyTenant-${stamp}`,
+    }),
+  })
+  assert.equal(user.response.status, 201)
+
+  const businessA = await request('/api/tenant/businesses', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({ name: `Biz-A-${stamp}` }),
+  })
+  const businessB = await request('/api/tenant/businesses', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({ name: `Biz-B-${stamp}` }),
+  })
+  assert.equal(businessA.response.status, 201)
+  assert.equal(businessB.response.status, 201)
+
+  const sourceBook = await request('/api/books', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      businessId: businessA.body.business.id,
+      name: `Source-${stamp}`,
+      currency: 'UGX',
+    }),
+  })
+  assert.equal(sourceBook.response.status, 201)
+
+  const sourceRecord = await request('/api/records', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      bookId: sourceBook.body.book.id,
+      type: 'income',
+      amount: 3200,
+      note: 'for cloning',
+      contact: 'C1',
+      category: 'Sales',
+      paymentMode: 'Cash',
+      date: '2026-03-24',
+      time: '09:10',
+      attachments: [],
+    }),
+  })
+  assert.equal(sourceRecord.response.status, 201)
+
+  const duplicated = await request(`/api/books/${sourceBook.body.book.id}/duplicate`, {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+  })
+  assert.equal(duplicated.response.status, 201)
+  assert.ok(duplicated.body.duplicatedBookId)
+
+  const booksInSourceBusiness = await request(
+    `/api/books?businessId=${businessA.body.business.id}`,
+    {
+      headers: { Authorization: `Bearer ${user.body.accessToken}` },
+    },
+  )
+  assert.equal(booksInSourceBusiness.response.status, 200)
+  assert.equal(
+    booksInSourceBusiness.body.books.some((book) => book.id === duplicated.body.duplicatedBookId),
+    true,
+  )
+
+  const copied = await request(`/api/books/${sourceBook.body.book.id}/copy`, {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({ targetBusinessId: businessB.body.business.id }),
+  })
+  assert.equal(copied.response.status, 201)
+  assert.ok(copied.body.copiedBookId)
+
+  const booksInTargetBusiness = await request(
+    `/api/books?businessId=${businessB.body.business.id}`,
+    {
+      headers: { Authorization: `Bearer ${user.body.accessToken}` },
+    },
+  )
+  assert.equal(booksInTargetBusiness.response.status, 200)
+  assert.equal(
+    booksInTargetBusiness.body.books.some((book) => book.id === copied.body.copiedBookId),
+    true,
+  )
+
+  const snapshot = await request('/api/data/snapshot', {
+    headers: { Authorization: `Bearer ${user.body.accessToken}` },
+  })
+  assert.equal(snapshot.response.status, 200)
+  assert.equal(
+    snapshot.body.records.some((record) => record.book_id === duplicated.body.duplicatedBookId),
+    true,
+  )
+  assert.equal(
+    snapshot.body.records.some((record) => record.book_id === copied.body.copiedBookId),
+    true,
+  )
+})
+
+test('record move/copy/bulk-delete operate within tenant books', async () => {
+  const stamp = Date.now()
+  const user = await request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fullName: 'Record Ops User',
+      email: `record-ops-${stamp}@hebo.test`,
+      password: 'Pass1234',
+      tenantName: `RecordOps-${stamp}`,
+    }),
+  })
+  assert.equal(user.response.status, 201)
+
+  const business = await request('/api/tenant/businesses', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({ name: `RecordOpsBiz-${stamp}` }),
+  })
+  assert.equal(business.response.status, 201)
+
+  const sourceBook = await request('/api/books', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      businessId: business.body.business.id,
+      name: 'Source Book',
+      currency: 'UGX',
+    }),
+  })
+  const targetBook = await request('/api/books', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      businessId: business.body.business.id,
+      name: 'Target Book',
+      currency: 'UGX',
+    }),
+  })
+  assert.equal(sourceBook.response.status, 201)
+  assert.equal(targetBook.response.status, 201)
+
+  const firstRecord = await request('/api/records', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      bookId: sourceBook.body.book.id,
+      type: 'expense',
+      amount: 1500,
+      note: 'r1',
+      contact: 'Vendor',
+      category: 'Ops',
+      paymentMode: 'Cash',
+      date: '2026-03-24',
+      time: '10:15',
+      attachments: [],
+    }),
+  })
+  const secondRecord = await request('/api/records', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      bookId: sourceBook.body.book.id,
+      type: 'expense',
+      amount: 2100,
+      note: 'r2',
+      contact: 'Vendor',
+      category: 'Ops',
+      paymentMode: 'Cash',
+      date: '2026-03-24',
+      time: '11:20',
+      attachments: [],
+    }),
+  })
+  assert.equal(firstRecord.response.status, 201)
+  assert.equal(secondRecord.response.status, 201)
+
+  const copyResponse = await request('/api/records/copy', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      recordIds: [firstRecord.body.record.id, secondRecord.body.record.id],
+      targetBookIds: [targetBook.body.book.id],
+    }),
+  })
+  assert.equal(copyResponse.response.status, 200)
+  assert.equal(copyResponse.body.createdCount, 2)
+
+  const moveResponse = await request('/api/records/move', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({
+      recordIds: [firstRecord.body.record.id],
+      targetBookId: targetBook.body.book.id,
+    }),
+  })
+  assert.equal(moveResponse.response.status, 200)
+  assert.equal(moveResponse.body.movedCount, 1)
+
+  const targetRecords = await request(`/api/records?bookId=${targetBook.body.book.id}`, {
+    headers: { Authorization: `Bearer ${user.body.accessToken}` },
+  })
+  assert.equal(targetRecords.response.status, 200)
+  assert.equal(targetRecords.body.records.length >= 3, true)
+
+  const idsToDelete = targetRecords.body.records.slice(0, 2).map((record) => record.id)
+  const bulkDelete = await request('/api/records/bulk-delete', {
+    method: 'POST',
+    headers: authHeaders(user.body.accessToken),
+    body: JSON.stringify({ ids: idsToDelete }),
+  })
+  assert.equal(bulkDelete.response.status, 200)
+  assert.equal(bulkDelete.body.deletedCount, idsToDelete.length)
+})

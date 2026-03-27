@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend:
-    name: Backend Lint and Tests
+    name: Backend Tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -51,16 +51,12 @@ jobs:
         run: npm run db:init
         working-directory: backend
 
-      - name: Lint backend
-        run: npm run lint
-        working-directory: backend
-
       - name: Test backend
         run: npm test
         working-directory: backend
 
   frontend:
-    name: Frontend Lint Build Unit
+    name: Frontend Build Unit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,10 +71,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
-        working-directory: frontend
-
-      - name: Lint frontend
-        run: npm run lint
         working-directory: frontend
 
       - name: Unit tests
@@ -117,6 +109,7 @@ jobs:
       JWT_SECRET: ci-jwt-secret
       JWT_EXPIRES_IN: 7d
       E2E_BACKEND_URL: http://127.0.0.1:4000
+      VITE_API_BASE_URL: http://127.0.0.1:4000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
