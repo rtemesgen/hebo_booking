@@ -5,6 +5,8 @@ import { requireAuth } from '../middleware/auth.js'
 import { requireTenantMembership } from '../middleware/tenant.js'
 import { createId } from '../utils/ids.js'
 import { sendServerError } from '../utils/http.js'
+import * as bookService from '../services/bookService.js'
+import * as recordService from '../services/recordService.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -46,80 +48,6 @@ async function ensureBusinessBelongsToTenant(client, tenantId, businessId) {
   return true
 }
 
-async function upsertBook(client, tenantId, businessId, entityId, payloadBook) {
-  if (!payloadBook) {
-    throw new Error('Missing book payload')
-  }
-
-  await client.query(
-    `INSERT INTO books (id, tenant_id, business_id, name, currency, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, now(), now())
-     ON CONFLICT (id)
-     DO UPDATE SET
-       tenant_id = EXCLUDED.tenant_id,
-       business_id = EXCLUDED.business_id,
-       name = EXCLUDED.name,
-       currency = EXCLUDED.currency,
-       updated_at = now()`,
-    [
-      entityId,
-      tenantId,
-      businessId,
-      payloadBook.name || 'Book',
-      payloadBook.currency || 'UGX',
-    ],
-  )
-}
-
-async function upsertRecord(client, tenantId, businessId, bookId, entityId, payloadRecord) {
-  if (!payloadRecord) {
-    throw new Error('Missing record payload')
-  }
-
-  const attachments = JSON.stringify(Array.isArray(payloadRecord.attachments) ? payloadRecord.attachments : [])
-
-  await client.query(
-    `INSERT INTO records (
-       id, tenant_id, business_id, book_id, type, amount, note, contact,
-       category, payment_mode, date, time, attachments, created_at, updated_at
-     )
-     VALUES (
-       $1, $2, $3, $4, $5, $6, $7, $8,
-       $9, $10, $11, $12, $13::jsonb, now(), now()
-     )
-     ON CONFLICT (id)
-     DO UPDATE SET
-       tenant_id = EXCLUDED.tenant_id,
-       business_id = EXCLUDED.business_id,
-       book_id = EXCLUDED.book_id,
-       type = EXCLUDED.type,
-       amount = EXCLUDED.amount,
-       note = EXCLUDED.note,
-       contact = EXCLUDED.contact,
-       category = EXCLUDED.category,
-       payment_mode = EXCLUDED.payment_mode,
-       date = EXCLUDED.date,
-       time = EXCLUDED.time,
-       attachments = EXCLUDED.attachments,
-       updated_at = now()`,
-    [
-      entityId,
-      tenantId,
-      businessId,
-      bookId,
-      payloadRecord.type || 'expense',
-      Number(payloadRecord.amount || 0),
-      payloadRecord.note || '',
-      payloadRecord.contact || '',
-      payloadRecord.category || '',
-      payloadRecord.paymentMode || 'Cash',
-      payloadRecord.date || new Date().toISOString().slice(0, 10),
-      payloadRecord.time || '00:00',
-      attachments,
-    ],
-  )
-}
-
 router.post('/batch', async (req, res) => {
   const parsed = batchSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -149,7 +77,7 @@ router.post('/batch', async (req, res) => {
                 [change.entityId, tenantId],
               )
             } else {
-              await upsertBook(
+              await bookService.upsertBook(
                 client,
                 tenantId,
                 change.companyId || change.payload?.book?.companyId,
@@ -167,7 +95,7 @@ router.post('/batch', async (req, res) => {
               )
             } else {
               const resolvedBookId = change.bookId || change.payload?.record?.bookId
-              await upsertRecord(
+              await recordService.upsertRecord(
                 client,
                 tenantId,
                 change.companyId || '',

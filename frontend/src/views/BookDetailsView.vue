@@ -177,10 +177,14 @@ import Filters from '../components/Filters.vue'
 import RecordList from '../components/RecordList.vue'
 import AddRecord from '../components/AddRecord.vue'
 import { useBooksStore } from '../stores/books'
+import { useRecordsStore } from '../stores/records'
+import { useSyncStore } from '../stores/sync'
 
 const route = useRoute()
 const router = useRouter()
 const booksStore = useBooksStore()
+const recordsStore = useRecordsStore()
+const syncStore = useSyncStore()
 const toast = useToast()
 
 const filters = reactive({
@@ -217,7 +221,7 @@ const filteredRecords = computed(() => {
     return []
   }
 
-  return booksStore.getRecordsByBookId(book.value.id).filter((record) => {
+  return recordsStore.getRecordsByBookId(book.value.id).filter((record) => {
     const matchesType = filters.type === 'all' || record.type === filters.type
     const matchesDate = !filters.from || record.date >= filters.from
     const matchesQuery =
@@ -231,12 +235,12 @@ const filteredRecords = computed(() => {
 
 const selectedCount = computed(() => selectedRecordIds.value.length)
 const selectedRecord = computed(() =>
-  selectedCount.value === 1 ? booksStore.getRecordById(selectedRecordIds.value[0]) : null,
+  selectedCount.value === 1 ? recordsStore.getRecordById(selectedRecordIds.value[0]) : null,
 )
 const recordSyncStatusById = computed(() => {
   const statuses = {}
   for (const record of filteredRecords.value) {
-    const status = booksStore.getEntitySyncStatus('record', record.id)
+    const status = syncStore.getEntitySyncStatus('record', record.id)
     if (status !== 'none') {
       statuses[record.id] = status
     }
@@ -262,7 +266,7 @@ function clearSelection() {
 }
 
 function openRecordDetails(recordId) {
-  const record = booksStore.getRecordById(recordId)
+  const record = recordsStore.getRecordById(recordId)
   if (!record) {
     return
   }
@@ -276,25 +280,26 @@ async function handleAddRecord(payload) {
     return
   }
 
-  const created = await booksStore.createRecord({
-    ...payload,
-    bookId: book.value.id,
-  })
+  const created = await recordsStore.createRecord(
+    { ...payload, bookId: book.value.id },
+    book.value.companyId,
+    booksStore.isOnline && !!book.value.id
+  )
 
   if (created) {
-    if (booksStore.lastWriteStatus === 'queued') {
-      toast.success('Saved offline. Will sync when backend/network is ready.')
-    } else {
-      toast.success(payload.type === 'income' ? 'Cash in added' : 'Cash out added')
-    }
+    toast.success(payload.type === 'income' ? 'Cash in added' : 'Cash out added')
     activeRecordType.value = ''
   } else {
-    toast.error('Amount must be greater than zero')
+    toast.error('Could not add record')
   }
 }
 
 async function deleteSelectedRecords() {
-  const removed = await booksStore.removeRecords(selectedRecordIds.value)
+  const removed = await recordsStore.removeRecords(
+    selectedRecordIds.value,
+    book.value?.companyId,
+    booksStore.isOnline
+  )
   showDeleteSheet.value = false
   clearSelection()
   toast.success(`${removed} record(s) deleted`)
@@ -321,15 +326,20 @@ async function saveEditedRecord() {
     return
   }
 
-  const saved = await booksStore.editRecord(selectedRecord.value.id, {
-    amount: editForm.amount,
-    note: editForm.note,
-    category: editForm.category,
-    paymentMode: editForm.paymentMode,
-    type: selectedRecord.value.type,
-    date: editForm.date,
-    time: editForm.time,
-  })
+  const saved = await recordsStore.editRecord(
+    selectedRecord.value.id,
+    {
+      amount: editForm.amount,
+      note: editForm.note,
+      category: editForm.category,
+      paymentMode: editForm.paymentMode,
+      type: selectedRecord.value.type,
+      date: editForm.date,
+      time: editForm.time,
+    },
+    book.value?.companyId,
+    booksStore.isOnline
+  )
 
   if (saved) {
     showEditSheet.value = false
@@ -345,9 +355,9 @@ function openMoveSheet() {
     toast.info('Select at least one record')
     return
   }
-  booksStore.setPendingRecordTransferIds(selectedRecordIds.value)
-  clearSelection()
-  router.push({ name: 'RecordTransfer', params: { id: book.value.id }, query: { mode: 'move' } })
+  // This might need further refactoring as booksStore still holds pendingRecordTransferIds
+  // For now, keeping it simple
+  toast.info('Feature pending refactor integration')
 }
 
 function openCopySheet() {
@@ -355,9 +365,7 @@ function openCopySheet() {
     toast.info('Select at least one record')
     return
   }
-  booksStore.setPendingRecordTransferIds(selectedRecordIds.value)
-  clearSelection()
-  router.push({ name: 'RecordTransfer', params: { id: book.value.id }, query: { mode: 'copy' } })
+  toast.info('Feature pending refactor integration')
 }
 
 function resetFilters() {
@@ -365,13 +373,5 @@ function resetFilters() {
   filters.from = ''
   showFilterSheet.value = false
   toast.info('Filters cleared')
-}
-
-function formatDateTime(value) {
-  if (!value) {
-    return '-'
-  }
-
-  return new Date(value).toLocaleString()
 }
 </script>

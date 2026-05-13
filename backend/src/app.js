@@ -3,6 +3,8 @@ import cors from 'cors'
 import { config } from './config.js'
 import { pool } from './db/pool.js'
 import { applySecurityHeaders } from './middleware/security.js'
+import { requestLogger } from './middleware/logger.js'
+import { errorHandler, notFoundHandler } from './middleware/error.js'
 import authRoutes from './routes/auth.js'
 import tenantRoutes from './routes/tenant.js'
 import syncRoutes from './routes/sync.js'
@@ -31,6 +33,7 @@ export function createApp() {
     }),
   )
   app.use(applySecurityHeaders)
+  app.use(requestLogger)
   app.use(express.json({ limit: '2mb' }))
 
   app.get('/health', async (_req, res) => {
@@ -49,9 +52,8 @@ export function createApp() {
   app.use('/api/books', booksRoutes)
   app.use('/api/records', recordsRoutes)
 
-  app.use((error, _req, res, _next) => {
-    return sendServerError(res, error, 'Unhandled server error')
-  })
+  app.use(notFoundHandler)
+  app.use(errorHandler)
 
   return app
 }

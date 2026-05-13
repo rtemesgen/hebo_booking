@@ -1,10 +1,10 @@
 import express from 'express'
 import { z } from 'zod'
-import { pool, withTransaction } from '../db/pool.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireTenantMembership } from '../middleware/tenant.js'
-import { createId } from '../utils/ids.js'
 import { sendServerError } from '../utils/http.js'
+import { pool } from '../db/pool.js'
+import * as recordService from '../services/recordService.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -49,21 +49,8 @@ router.get('/', async (req, res) => {
   const { tenantId } = req.auth
   const { bookId = '' } = req.query
   try {
-    const params = [tenantId]
-    let where = 'WHERE tenant_id = $1'
-    if (bookId) {
-      params.push(String(bookId))
-      where += ' AND book_id = $2'
-    }
-    const result = await pool.query(
-      `SELECT id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-              payment_mode, date, time, attachments, created_at, updated_at
-       FROM records
-       ${where}
-       ORDER BY created_at DESC`,
-      params,
-    )
-    return res.json({ records: result.rows })
+    const records = await recordService.getAllRecords(tenantId, bookId)
+    return res.json({ records })
   } catch (error) {
     return sendServerError(res, error, 'Could not fetch records')
   }
@@ -85,34 +72,8 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ message: 'Book not in tenant' })
     }
     const book = bookResult.rows[0]
-    const id = createId('record')
-    const result = await pool.query(
-      `INSERT INTO records (
-        id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-        payment_mode, date, time, attachments, created_at, updated_at
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13::jsonb, now(), now()
-      )
-      RETURNING id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-                payment_mode, date, time, attachments, created_at, updated_at`,
-      [
-        id,
-        tenantId,
-        book.business_id,
-        parsed.data.bookId,
-        parsed.data.type,
-        parsed.data.amount,
-        parsed.data.note || '',
-        parsed.data.contact || '',
-        parsed.data.category || '',
-        parsed.data.paymentMode || 'Cash',
-        parsed.data.date,
-        parsed.data.time,
-        JSON.stringify(parsed.data.attachments || []),
-      ],
-    )
-    return res.status(201).json({ record: result.rows[0] })
+    const record = await recordService.createRecord(tenantId, book.business_id, parsed.data.bookId, parsed.data)
+    return res.status(201).json({ record })
   } catch (error) {
     return sendServerError(res, error, 'Could not create record')
   }
@@ -126,47 +87,11 @@ router.patch('/:id', async (req, res) => {
   }
 
   try {
-    const currentResult = await pool.query(
-      `SELECT id, type, amount, note, contact, category, payment_mode, date, time, attachments
-       FROM records
-       WHERE id = $1 AND tenant_id = $2`,
-      [req.params.id, tenantId],
-    )
-    if (!currentResult.rowCount) {
+    const record = await recordService.updateRecord(tenantId, req.params.id, parsed.data)
+    if (!record) {
       return res.status(404).json({ message: 'Record not found' })
     }
-    const current = currentResult.rows[0]
-
-    const result = await pool.query(
-      `UPDATE records
-       SET type = $1,
-           amount = $2,
-           note = $3,
-           contact = $4,
-           category = $5,
-           payment_mode = $6,
-           date = $7,
-           time = $8,
-           attachments = $9::jsonb,
-           updated_at = now()
-       WHERE id = $10 AND tenant_id = $11
-       RETURNING id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-                 payment_mode, date, time, attachments, created_at, updated_at`,
-      [
-        parsed.data.type || current.type,
-        parsed.data.amount ?? current.amount,
-        parsed.data.note ?? current.note,
-        parsed.data.contact ?? current.contact,
-        parsed.data.category ?? current.category,
-        parsed.data.paymentMode ?? current.payment_mode,
-        parsed.data.date ?? current.date,
-        parsed.data.time ?? current.time,
-        JSON.stringify(parsed.data.attachments ?? current.attachments ?? []),
-        req.params.id,
-        tenantId,
-      ],
-    )
-    return res.json({ record: result.rows[0] })
+    return res.json({ record })
   } catch (error) {
     return sendServerError(res, error, 'Could not update record')
   }
@@ -175,7 +100,10 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const { tenantId } = req.auth
   try {
-    await pool.query('DELETE FROM records WHERE id = $1 AND tenant_id = $2', [req.params.id, tenantId])
+    const deleted = await recordService.deleteRecord(tenantId, req.params.id)
+    if (!deleted) {
+      return res.status(404).json({ message: 'Record not found' })
+    }
     return res.status(204).send()
   } catch (error) {
     return sendServerError(res, error, 'Could not delete record')
@@ -189,11 +117,8 @@ router.post('/bulk-delete', async (req, res) => {
     return res.status(400).json({ message: 'No record ids provided' })
   }
   try {
-    const result = await pool.query(
-      'DELETE FROM records WHERE tenant_id = $1 AND id = ANY($2::text[])',
-      [tenantId, ids],
-    )
-    return res.json({ deletedCount: result.rowCount })
+    const deletedCount = await recordService.deleteRecordsBulk(tenantId, ids)
+    return res.json({ deletedCount })
   } catch (error) {
     return sendServerError(res, error, 'Could not delete records')
   }
@@ -233,13 +158,13 @@ router.post('/move', async (req, res) => {
       return res.status(400).json({ message: 'Records must move within same business' })
     }
 
-    const updated = await pool.query(
-      `UPDATE records
-       SET book_id = $1, business_id = $2, updated_at = now()
-       WHERE tenant_id = $3 AND id = ANY($4::text[])`,
-      [parsed.data.targetBookId, targetBook.business_id, tenantId, parsed.data.recordIds],
+    const movedCount = await recordService.moveRecords(
+      tenantId,
+      parsed.data.recordIds,
+      parsed.data.targetBookId,
+      targetBook.business_id,
     )
-    return res.json({ movedCount: updated.rowCount })
+    return res.json({ movedCount })
   } catch (error) {
     return sendServerError(res, error, 'Could not move records')
   }
@@ -253,16 +178,6 @@ router.post('/copy', async (req, res) => {
   }
 
   try {
-    const sourceRecords = await pool.query(
-      `SELECT id, business_id, type, amount, note, contact, category, payment_mode, date, time, attachments
-       FROM records
-       WHERE tenant_id = $1 AND id = ANY($2::text[])`,
-      [tenantId, parsed.data.recordIds],
-    )
-    if (!sourceRecords.rowCount) {
-      return res.status(404).json({ message: 'Records not found' })
-    }
-
     const targetBooks = await pool.query(
       `SELECT id, business_id
        FROM books
@@ -273,46 +188,11 @@ router.post('/copy', async (req, res) => {
       return res.status(404).json({ message: 'Target books not found' })
     }
 
-    const createdCount = await withTransaction(async (client) => {
-      let count = 0
-      for (const target of targetBooks.rows) {
-        const allowed = sourceRecords.rows.every((row) => row.business_id === target.business_id)
-        if (!allowed) {
-          continue
-        }
-
-        for (const row of sourceRecords.rows) {
-          await client.query(
-            `INSERT INTO records (
-              id, tenant_id, business_id, book_id, type, amount, note, contact, category,
-              payment_mode, date, time, attachments, created_at, updated_at
-            ) VALUES (
-              $1, $2, $3, $4, $5, $6, $7, $8, $9,
-              $10, $11, $12, $13::jsonb, now(), now()
-            )`,
-            [
-              createId('record'),
-              tenantId,
-              target.business_id,
-              target.id,
-              row.type,
-              row.amount,
-              row.note || '',
-              row.contact || '',
-              row.category || '',
-              row.payment_mode || 'Cash',
-              row.date,
-              row.time,
-              JSON.stringify(Array.isArray(row.attachments) ? row.attachments : []),
-            ],
-          )
-          count += 1
-        }
-      }
-
-      return count
-    })
-
+    const createdCount = await recordService.copyRecords(
+      tenantId,
+      parsed.data.recordIds,
+      targetBooks.rows,
+    )
     return res.json({ createdCount })
   } catch (error) {
     return sendServerError(res, error, 'Could not copy records')
