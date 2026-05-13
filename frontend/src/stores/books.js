@@ -134,8 +134,26 @@ export const useBooksStore = defineStore('books', () => {
   const lastWriteStatus = ref('idle')
 
   const bookCount = computed(() => books.value.length)
+
+  // Optimization: Group records by bookId in $O(R)$ for faster lookups
+  const recordsByBookId = computed(() => {
+    const map = new Map()
+    for (const record of records.value) {
+      if (!map.has(record.bookId)) {
+        map.set(record.bookId, [])
+      }
+      map.get(record.bookId).push(record)
+    }
+    return map
+  })
+
+  // Optimization: Single pass over all records to calculate total balance ($O(R)$ vs $O(B*R)$)
   const totalBalance = computed(() =>
-    books.value.reduce((sum, book) => sum + getBookSummary(book.id).balance, 0),
+    records.value.reduce((sum, record) => {
+      if (record.type === 'income') return sum + record.amount
+      if (record.type === 'expense') return sum - record.amount
+      return sum
+    }, 0),
   )
   const syncSummary = computed(() => ({
     pending: syncQueue.value.filter((item) => item.status === 'pending').length,
@@ -1206,19 +1224,24 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   function getRecordsByBookId(bookId) {
-    return records.value
-      .filter((record) => record.bookId === bookId)
-      .sort((a, b) => parseRecordMoment(b) - parseRecordMoment(a))
+    // Optimization: $O(1)$ initial lookup using pre-computed Map
+    const bookRecords = recordsByBookId.value.get(bookId) || []
+    return [...bookRecords].sort((a, b) => parseRecordMoment(b) - parseRecordMoment(a))
   }
 
   function getBookSummary(bookId) {
-    const bookRecords = getRecordsByBookId(bookId)
-    const cashIn = bookRecords
-      .filter((record) => record.type === 'income')
-      .reduce((sum, record) => sum + record.amount, 0)
-    const cashOut = bookRecords
-      .filter((record) => record.type === 'expense')
-      .reduce((sum, record) => sum + record.amount, 0)
+    // Optimization: Single pass over book-specific records without sorting or extra filtering
+    const bookRecords = recordsByBookId.value.get(bookId) || []
+    let cashIn = 0
+    let cashOut = 0
+
+    for (const record of bookRecords) {
+      if (record.type === 'income') {
+        cashIn += record.amount
+      } else if (record.type === 'expense') {
+        cashOut += record.amount
+      }
+    }
 
     return {
       cashIn,

@@ -42,12 +42,15 @@ function getBookSummary(bookId) {
   return booksStore.getBookSummary(bookId)
 }
 
+// Optimization: Cache the formatter to avoid expensive constructor calls during list rendering
+const currencyFormatter = new Intl.NumberFormat('en-UG', {
+  style: 'currency',
+  currency: 'UGX',
+  maximumFractionDigits: 0,
+})
+
 function formatCurrency(value) {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0,
-  }).format(value)
+  return currencyFormatter.format(value)
 }
 
 function formatRelativeTime(value) {
