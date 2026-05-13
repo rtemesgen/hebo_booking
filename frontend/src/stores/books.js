@@ -77,6 +77,17 @@ export const useBooksStore = defineStore('books', () => {
     }) ?? null
   }
 
+  function buildCopyName(sourceName, companyId) {
+    const base = sourceName?.trim() || 'Book'
+    let candidate = `${base} Copy`
+    let index = 2
+    while (findBookByNormalizedName(candidate, companyId)) {
+      candidate = `${base} Copy ${index}`
+      index += 1
+    }
+    return candidate
+  }
+
   function addBook(payload) {
     const name = payload.name?.trim()
     if (!name) return false
@@ -153,11 +164,16 @@ export const useBooksStore = defineStore('books', () => {
     }
 
     try {
+      serverWriteInFlight.value = true
       await updateBookApi(bookId, { name: trimmed })
       await syncFromBackendSnapshot()
+      lastWriteStatus.value = 'server'
       return true
     } catch {
+      lastWriteStatus.value = 'queued'
       return false
+    } finally {
+      serverWriteInFlight.value = false
     }
   }
 
@@ -175,11 +191,45 @@ export const useBooksStore = defineStore('books', () => {
       return true
     }
     try {
+      serverWriteInFlight.value = true
       await deleteBookApi(bookId)
       await syncFromBackendSnapshot()
+      lastWriteStatus.value = 'server'
       return true
     } catch {
+      lastWriteStatus.value = 'queued'
       return false
+    } finally {
+      serverWriteInFlight.value = false
+    }
+  }
+
+  async function duplicateBookEntry(bookId) {
+    if (!shouldUseBackendCrud()) {
+      const source = getBookById(bookId)
+      if (!source) return false
+      const newBookId = createId('book')
+      const copiedName = buildCopyName(source.name, source.companyId)
+      const now = new Date().toISOString()
+      books.value.unshift({ ...source, id: newBookId, name: copiedName, createdAt: now, updatedAt: now })
+      const bookRecords = recordsStore.getRecordsByBookId(bookId)
+      bookRecords.forEach(r => {
+        recordsStore.records.unshift({ ...r, id: createId('record'), bookId: newBookId, createdAt: now })
+      })
+      syncStore.enqueueSyncChange({ companyId: source.companyId, entityType: 'book', entityId: newBookId, operation: 'copy' })
+      return true
+    }
+    try {
+      serverWriteInFlight.value = true
+      await duplicateBookApi(bookId)
+      await syncFromBackendSnapshot()
+      lastWriteStatus.value = 'server'
+      return true
+    } catch {
+      lastWriteStatus.value = 'queued'
+      return false
+    } finally {
+      serverWriteInFlight.value = false
     }
   }
 
@@ -243,6 +293,7 @@ export const useBooksStore = defineStore('books', () => {
     createBook,
     renameBookEntry,
     removeBook,
+    duplicateBookEntry,
     syncFromBackendSnapshot,
     getBookById,
     getBookSummary,

@@ -1,12 +1,38 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { postSyncBatch, isBackendConfigured, hasAuthSession } from '../services/api'
 import { createId } from '../utils/helpers'
+import { useBooksStore } from './books'
+import { useRecordsStore } from './records'
+
+const STORAGE_KEY_V1 = 'hebo.books.v1'
+const STORAGE_KEY_V2 = 'hebo.sync.v2'
+
+function readPersistedState() {
+  if (typeof window === 'undefined') return null
+  try {
+    const v2 = localStorage.getItem(STORAGE_KEY_V2)
+    if (v2) return JSON.parse(v2)
+
+    const v1 = localStorage.getItem(STORAGE_KEY_V1)
+    if (v1) {
+      const parsed = JSON.parse(v1)
+      return {
+        syncQueue: parsed.syncQueue || [],
+        lastSyncedAt: parsed.lastSyncedAt || '',
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
 
 export const useSyncStore = defineStore('sync', () => {
-  const syncQueue = ref([])
+  const persisted = readPersistedState()
+  const syncQueue = ref(persisted?.syncQueue || [])
   const syncInFlight = ref(false)
-  const lastSyncedAt = ref('')
+  const lastSyncedAt = ref(persisted?.lastSyncedAt || '')
 
   const syncSummary = computed(() => ({
     pending: syncQueue.value.filter((item) => item.status === 'pending').length,
@@ -74,7 +100,7 @@ export const useSyncStore = defineStore('sync', () => {
     return true
   }
 
-  async function processSyncQueue(books = [], records = []) {
+  async function processSyncQueue() {
     if (syncInFlight.value || !isBackendConfigured() || !hasAuthSession()) return
 
     const pendingItems = syncQueue.value.filter((item) => item.status === 'pending')
@@ -84,12 +110,15 @@ export const useSyncStore = defineStore('sync', () => {
     const now = new Date().toISOString()
 
     try {
+      const booksStore = useBooksStore()
+      const recordsStore = useRecordsStore()
+
       const payload = pendingItems.map((item) => {
         let itemPayload = {}
         if (item.entityType === 'book') {
-          itemPayload = { book: books.find((b) => b.id === item.entityId) || null }
+          itemPayload = { book: booksStore.books.find((b) => b.id === item.entityId) || null }
         } else if (item.entityType === 'record') {
-          itemPayload = { record: records.find((r) => r.id === item.entityId) || null }
+          itemPayload = { record: recordsStore.records.find((r) => r.id === item.entityId) || null }
         }
 
         return {
@@ -137,6 +166,13 @@ export const useSyncStore = defineStore('sync', () => {
       syncInFlight.value = false
     }
   }
+
+  watch([syncQueue, lastSyncedAt], () => {
+    localStorage.setItem(STORAGE_KEY_V2, JSON.stringify({
+      syncQueue: syncQueue.value,
+      lastSyncedAt: lastSyncedAt.value,
+    }))
+  }, { deep: true })
 
   return {
     syncQueue,
