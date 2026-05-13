@@ -187,8 +187,13 @@
           />
         </label>
 
-        <button class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]" type="button" @click="addBusiness">
-          Save Business
+        <button
+          :disabled="isSaving"
+          class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]"
+          type="button"
+          @click="addBusiness"
+        >
+          {{ isSaving ? 'Saving...' : 'Save Business' }}
         </button>
       </section>
     </div>
@@ -207,7 +212,7 @@
           <h2 class="m-0 text-[0.95rem]">Add New Book</h2>
         </div>
 
-        <AddBook @submit="handleAddBook" />
+        <AddBook :loading="isSaving" @submit="handleAddBook" />
       </section>
     </div>
 
@@ -230,8 +235,13 @@
           <input v-model.trim="renameValue" class="w-full rounded-[10px] border border-[#6553281f] bg-[#fffdfa] px-3 py-2.5" type="text" />
         </label>
 
-        <button class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]" type="button" @click="renameSelectedBook">
-          Save Name
+        <button
+          :disabled="isSaving"
+          class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]"
+          type="button"
+          @click="renameSelectedBook"
+        >
+          {{ isSaving ? 'Saving...' : 'Save Name' }}
         </button>
       </section>
     </div>
@@ -367,6 +377,7 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const isSaving = ref(false)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -446,18 +457,23 @@ const inviteMailto = computed(() => {
 const businessMembers = computed(() => businessesStore.getMembersForBusiness(selectedBusinessId.value))
 
 async function handleAddBook(payload) {
-  const created = await booksStore.createBook({
-    ...payload,
-    companyId: selectedBusinessId.value,
-  })
+  isSaving.value = true
+  try {
+    const created = await booksStore.createBook({
+      ...payload,
+      companyId: selectedBusinessId.value,
+    })
 
-  if (created) {
-    toast.success('Book added')
-  } else {
-    toast.error('Book name is invalid or already used in this business')
+    if (created) {
+      toast.success('Book added')
+    } else {
+      toast.error('Book name is invalid or already used in this business')
+    }
+
+    showAddBookSheet.value = false
+  } finally {
+    isSaving.value = false
   }
-
-  showAddBookSheet.value = false
 }
 
 function closeAddBookSheet() {
@@ -489,12 +505,17 @@ async function renameSelectedBook() {
     return
   }
 
-  const renamed = await booksStore.renameBookEntry(activeMenuBook.value, renameValue.value)
-  if (renamed) {
-    toast.success('Book renamed')
-    closeRenameSheet()
-  } else {
-    toast.error('Name is invalid or already used in this business')
+  isSaving.value = true
+  try {
+    const renamed = await booksStore.renameBookEntry(activeMenuBook.value, renameValue.value)
+    if (renamed) {
+      toast.success('Book renamed')
+      closeRenameSheet()
+    } else {
+      toast.error('Name is invalid or already used in this business')
+    }
+  } finally {
+    isSaving.value = false
   }
 }
 
@@ -560,19 +581,24 @@ function closeAddBusinessSheet() {
 }
 
 async function addBusiness() {
-  const business = await businessesStore.addBusinessWithBackend(newBusinessName.value)
-  if (!business) {
-    toast.error('Business name is required or could not be created')
-    return
-  }
+  isSaving.value = true
+  try {
+    const business = await businessesStore.addBusinessWithBackend(newBusinessName.value)
+    if (!business) {
+      toast.error('Business name is required or could not be created')
+      return
+    }
 
-  await booksStore.createBook({
-    name: `${business.name} Main Book`,
-    companyId: business.id,
-  })
-  closeAddBusinessSheet()
-  showBusinessSheet.value = false
-  toast.success('Business added')
+    await booksStore.createBook({
+      name: `${business.name} Main Book`,
+      companyId: business.id,
+    })
+    closeAddBusinessSheet()
+    showBusinessSheet.value = false
+    toast.success('Business added')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 onMounted(async () => {
