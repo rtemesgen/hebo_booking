@@ -82,7 +82,14 @@
     <div v-if="showSearchSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showSearchSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="showSearchSheet = false">x</button>
+          <button
+            aria-label="Close search"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="showSearchSheet = false"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Search by book name</h2>
         </div>
         <input
@@ -97,7 +104,14 @@
     <div v-if="showSortSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showSortSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="showSortSheet = false">x</button>
+          <button
+            aria-label="Close sort options"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="showSortSheet = false"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Sort Books By</h2>
         </div>
 
@@ -117,7 +131,14 @@
     <div v-if="showBusinessSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeBusinessSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeBusinessSheet">x</button>
+          <button
+            aria-label="Close business selection"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="closeBusinessSheet"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Select Business</h2>
         </div>
 
@@ -145,7 +166,14 @@
     <div v-if="showAddBusinessSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeAddBusinessSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeAddBusinessSheet">x</button>
+          <button
+            aria-label="Close add business"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="closeAddBusinessSheet"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Add New Business</h2>
         </div>
 
@@ -159,8 +187,13 @@
           />
         </label>
 
-        <button class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]" type="button" @click="addBusiness">
-          Save Business
+        <button
+          :disabled="isSaving"
+          class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]"
+          type="button"
+          @click="addBusiness"
+        >
+          {{ isSaving ? 'Saving...' : 'Save Business' }}
         </button>
       </section>
     </div>
@@ -168,18 +201,32 @@
     <div v-if="showAddBookSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeAddBookSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeAddBookSheet">x</button>
+          <button
+            aria-label="Close add book"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="closeAddBookSheet"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Add New Book</h2>
         </div>
 
-        <AddBook @submit="handleAddBook" />
+        <AddBook :loading="isSaving" @submit="handleAddBook" />
       </section>
     </div>
 
     <div v-if="showRenameSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeRenameSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeRenameSheet">x</button>
+          <button
+            aria-label="Close rename book"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="closeRenameSheet"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Rename Book</h2>
         </div>
 
@@ -188,8 +235,13 @@
           <input v-model.trim="renameValue" class="w-full rounded-[10px] border border-[#6553281f] bg-[#fffdfa] px-3 py-2.5" type="text" />
         </label>
 
-        <button class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]" type="button" @click="renameSelectedBook">
-          Save Name
+        <button
+          :disabled="isSaving"
+          class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] shadow-[0_12px_24px_rgba(20,83,45,0.18)]"
+          type="button"
+          @click="renameSelectedBook"
+        >
+          {{ isSaving ? 'Saving...' : 'Save Name' }}
         </button>
       </section>
     </div>
@@ -197,7 +249,14 @@
     <div v-if="showInviteSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeInviteSheet">
       <section class="grid w-full max-w-[430px] gap-4 rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-1 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeInviteSheet">x</button>
+          <button
+            aria-label="Close invite team member"
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            @click="closeInviteSheet"
+          >
+            x
+          </button>
           <h2 class="m-0 text-[0.95rem]">Add Team Member</h2>
         </div>
 
@@ -318,6 +377,7 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const isSaving = ref(false)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -397,18 +457,23 @@ const inviteMailto = computed(() => {
 const businessMembers = computed(() => businessesStore.getMembersForBusiness(selectedBusinessId.value))
 
 async function handleAddBook(payload) {
-  const created = await booksStore.createBook({
-    ...payload,
-    companyId: selectedBusinessId.value,
-  })
+  isSaving.value = true
+  try {
+    const created = await booksStore.createBook({
+      ...payload,
+      companyId: selectedBusinessId.value,
+    })
 
-  if (created) {
-    toast.success('Book added')
-  } else {
-    toast.error('Book name is invalid or already used in this business')
+    if (created) {
+      toast.success('Book added')
+    } else {
+      toast.error('Book name is invalid or already used in this business')
+    }
+
+    showAddBookSheet.value = false
+  } finally {
+    isSaving.value = false
   }
-
-  showAddBookSheet.value = false
 }
 
 function closeAddBookSheet() {
@@ -440,12 +505,17 @@ async function renameSelectedBook() {
     return
   }
 
-  const renamed = await booksStore.renameBookEntry(activeMenuBook.value, renameValue.value)
-  if (renamed) {
-    toast.success('Book renamed')
-    closeRenameSheet()
-  } else {
-    toast.error('Name is invalid or already used in this business')
+  isSaving.value = true
+  try {
+    const renamed = await booksStore.renameBookEntry(activeMenuBook.value, renameValue.value)
+    if (renamed) {
+      toast.success('Book renamed')
+      closeRenameSheet()
+    } else {
+      toast.error('Name is invalid or already used in this business')
+    }
+  } finally {
+    isSaving.value = false
   }
 }
 
@@ -511,19 +581,24 @@ function closeAddBusinessSheet() {
 }
 
 async function addBusiness() {
-  const business = await businessesStore.addBusinessWithBackend(newBusinessName.value)
-  if (!business) {
-    toast.error('Business name is required or could not be created')
-    return
-  }
+  isSaving.value = true
+  try {
+    const business = await businessesStore.addBusinessWithBackend(newBusinessName.value)
+    if (!business) {
+      toast.error('Business name is required or could not be created')
+      return
+    }
 
-  await booksStore.createBook({
-    name: `${business.name} Main Book`,
-    companyId: business.id,
-  })
-  closeAddBusinessSheet()
-  showBusinessSheet.value = false
-  toast.success('Business added')
+    await booksStore.createBook({
+      name: `${business.name} Main Book`,
+      companyId: business.id,
+    })
+    closeAddBusinessSheet()
+    showBusinessSheet.value = false
+    toast.success('Business added')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 onMounted(async () => {
