@@ -142,25 +142,28 @@ import { useToast } from 'vue-toastification'
 import { clearAuthSession, hasAuthSession, isBackendConfigured } from '../services/api'
 import { useBooksStore } from '../stores/books'
 import { useBusinessesStore } from '../stores/businesses'
+import { useSyncStore } from '../stores/sync'
 
 const booksStore = useBooksStore()
 const businessesStore = useBusinessesStore()
+const syncStore = useSyncStore()
 const router = useRouter()
 const toast = useToast()
-const { syncSummary, isOnline, lastSyncedAt, auditLogs, books } = storeToRefs(booksStore)
+const { isOnline, auditLogs, books } = storeToRefs(booksStore)
 const { businesses } = storeToRefs(businessesStore)
+const { syncSummary, lastSyncedAt } = storeToRefs(syncStore)
 const sessionActive = ref(hasAuthSession())
 const backendReady = isBackendConfigured()
 
 const recentAuditLogs = computed(() => auditLogs.value.slice(0, 50))
 
 function syncNow() {
-  void booksStore.processSyncQueue()
+  void syncStore.processSyncQueue()
   toast.info('Sync requested')
 }
 
 function retryFailed() {
-  booksStore.retryFailedSyncItems()
+  syncStore.retryFailedSyncItems()
   toast.info('Retrying failed sync items')
 }
 

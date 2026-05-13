@@ -38,7 +38,9 @@ import { useToast } from 'vue-toastification'
 const toast = useToast()
 
 const STORAGE_KEYS = [
-  'hebo.books.v1',
+  'hebo.books.v2',
+  'hebo.records.v2',
+  'hebo.sync.v2',
   'hebo.businesses.v1',
   'hebo.businesses.selected.v1',
   'hebo.businesses.members.v1',
@@ -50,7 +52,7 @@ const STORAGE_KEYS = [
 function exportBackup() {
   const payload = {
     exportedAt: new Date().toISOString(),
-    schemaVersion: 1,
+    schemaVersion: 2,
     data: Object.fromEntries(
       STORAGE_KEYS.map((key) => [key, window.localStorage.getItem(key)]),
     ),

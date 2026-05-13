@@ -66,14 +66,14 @@
 import { storeToRefs } from 'pinia'
 import { useToast } from 'vue-toastification'
 
-import { useBooksStore } from '../stores/books'
+import { useSyncStore } from '../stores/sync'
 
 const toast = useToast()
-const booksStore = useBooksStore()
-const { failedSyncItems, syncSummary } = storeToRefs(booksStore)
+const syncStore = useSyncStore()
+const { failedSyncItems, syncSummary } = storeToRefs(syncStore)
 
 function resolve(syncItemId, strategy) {
-  const ok = booksStore.resolveSyncConflict(syncItemId, strategy)
+  const ok = syncStore.resolveSyncConflict(syncItemId, strategy)
   if (!ok) {
     toast.error('Could not resolve sync item')
     return
@@ -83,7 +83,7 @@ function resolve(syncItemId, strategy) {
 }
 
 function retryAll() {
-  booksStore.retryFailedSyncItems()
+  syncStore.retryFailedSyncItems()
   toast.info('Retry requested for all failed items')
 }
 </script>

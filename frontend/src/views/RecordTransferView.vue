@@ -64,11 +64,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 
 import { useBooksStore } from '../stores/books'
+import { useRecordsStore } from '../stores/records'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const booksStore = useBooksStore()
+const recordsStore = useRecordsStore()
 
 const search = ref('')
 const moveTargetId = ref('')
@@ -76,7 +78,7 @@ const copyTargetIds = ref([])
 
 const bookId = route.params.id
 const isMove = computed(() => route.query.mode === 'move')
-const selectedIds = computed(() => booksStore.pendingRecordTransferIds)
+const selectedIds = computed(() => recordsStore.pendingRecordTransferIds)
 const sourceBook = computed(() => booksStore.getBookById(bookId))
 
 const targets = computed(() => {
@@ -109,20 +111,32 @@ async function submitTransfer() {
     return
   }
 
+  const companyId = sourceBook.value?.companyId
+
   if (isMove.value) {
     if (!moveTargetId.value) {
       toast.error('Select a target book')
       return
     }
 
-    const moved = await booksStore.moveRecords(selectedIds.value, moveTargetId.value)
+    const moved = await recordsStore.moveRecords(
+      selectedIds.value,
+      moveTargetId.value,
+      companyId,
+      booksStore.shouldUseBackendCrud()
+    )
     if (!moved) {
       toast.error('Move failed. Target must be same business.')
       return
     }
     toast.success(`${moved} record(s) moved`)
   } else {
-    const copied = await booksStore.copyRecords(selectedIds.value, copyTargetIds.value)
+    const copied = await recordsStore.copyRecords(
+      selectedIds.value,
+      copyTargetIds.value,
+      companyId,
+      booksStore.shouldUseBackendCrud()
+    )
     if (!copied) {
       toast.error('Select at least one target book in same business')
       return
@@ -130,7 +144,7 @@ async function submitTransfer() {
     toast.success(`${copied} copied record(s) created`)
   }
 
-  booksStore.clearPendingRecordTransferIds()
+  recordsStore.clearPendingRecordTransferIds()
   router.push(`/book/${bookId}`)
 }
 </script>
