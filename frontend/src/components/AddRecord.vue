@@ -53,6 +53,7 @@
           :key="mode"
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
+          :aria-pressed="paymentMode === mode"
           type="button"
           @click="paymentMode = mode"
         >
@@ -61,7 +62,9 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button :class="['submit-button', type]" :disabled="isSaving" type="submit">
+      {{ isSaving ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
@@ -89,6 +92,7 @@ const amountError = ref('')
 const attachmentError = ref('')
 const attachmentName = ref('')
 const attachmentFile = ref(null)
+const isSaving = ref(false)
 const paymentModes = ['Cash', 'Online', 'Bank']
 
 const title = computed(() => (props.type === 'income' ? 'Add Cash In Entry' : 'Add Cash Out Entry'))
@@ -100,11 +104,13 @@ async function submitRecord() {
     return
   }
 
+  isSaving.value = true
   let attachments = []
   if (attachmentFile.value) {
     const file = attachmentFile.value
     if (file.size > 3 * 1024 * 1024) {
       attachmentError.value = 'Attachment must be below 3MB'
+      isSaving.value = false
       return
     }
 
@@ -121,6 +127,7 @@ async function submitRecord() {
       ]
     } catch {
       attachmentError.value = 'Could not save attachment'
+      isSaving.value = false
       return
     }
   }
