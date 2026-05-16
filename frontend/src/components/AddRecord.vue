@@ -1,48 +1,91 @@
 <template>
-  <form class="record-form" @submit.prevent="submitRecord">
+  <form
+    class="record-form"
+    @submit.prevent="submitRecord"
+  >
     <div class="record-header">
-      <h3 :class="type">{{ title }}</h3>
+      <h3 :class="type">
+        {{ title }}
+      </h3>
       <span :class="['type-chip', type]">{{ title }}</span>
     </div>
 
     <section class="top-row">
       <label class="field">
         <span>Date</span>
-        <input v-model="date" type="date" />
+        <input
+          v-model="date"
+          type="date"
+        >
       </label>
 
       <label class="field">
         <span>Time</span>
-        <input v-model="time" type="time" />
+        <input
+          v-model="time"
+          type="time"
+        >
       </label>
     </section>
 
     <label class="field">
       <span>Amount *</span>
-      <input v-model="amount" type="number" min="0" step="0.01" placeholder="0.00" @input="amountError = ''" />
-      <small v-if="amountError" class="field-error">{{ amountError }}</small>
+      <input
+        v-model="amount"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        @input="amountError = ''"
+      >
+      <small
+        v-if="amountError"
+        class="field-error"
+      >{{ amountError }}</small>
     </label>
 
     <label class="field">
       <span>Contact (Customer/Supplier)</span>
-      <input v-model.trim="contact" type="text" placeholder="Optional contact" />
+      <input
+        v-model.trim="contact"
+        type="text"
+        placeholder="Optional contact"
+      >
     </label>
 
     <label class="field">
       <span>Remark</span>
-      <input v-model.trim="remark" type="text" placeholder="Write remark" />
+      <input
+        v-model.trim="remark"
+        type="text"
+        placeholder="Write remark"
+      >
     </label>
 
     <label class="field">
       <span>Category</span>
-      <input v-model.trim="category" type="text" placeholder="Category" />
+      <input
+        v-model.trim="category"
+        type="text"
+        placeholder="Category"
+      >
     </label>
 
     <label class="field">
       <span>Attachment (Image or PDF)</span>
-      <input type="file" accept="image/*,.pdf,application/pdf" @change="onAttachmentChange" />
-      <small v-if="attachmentName" class="field-note">Selected: {{ attachmentName }}</small>
-      <small v-if="attachmentError" class="field-error">{{ attachmentError }}</small>
+      <input
+        type="file"
+        accept="image/*,.pdf,application/pdf"
+        @change="onAttachmentChange"
+      >
+      <small
+        v-if="attachmentName"
+        class="field-note"
+      >Selected: {{ attachmentName }}</small>
+      <small
+        v-if="attachmentError"
+        class="field-error"
+      >{{ attachmentError }}</small>
     </label>
 
     <section class="field">
@@ -54,6 +97,7 @@
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
           type="button"
+          :aria-pressed="paymentMode === mode"
           @click="paymentMode = mode"
         >
           {{ mode }}
@@ -61,13 +105,22 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button
+      :class="['submit-button', type, { 'opacity-70 cursor-not-allowed': booksStore.serverWriteInFlight }]"
+      type="submit"
+      :disabled="booksStore.serverWriteInFlight"
+    >
+      {{ booksStore.serverWriteInFlight ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { saveAttachmentBlob } from '../lib/attachments'
+import { useBooksStore } from '../stores/books'
+
+const booksStore = useBooksStore()
 
 const props = defineProps({
   type: {
