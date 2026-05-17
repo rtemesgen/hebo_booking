@@ -24,7 +24,9 @@
           >
             {{ syncStatusById[record.id] }}
           </span>
-          <span class="select-dot">{{ selectedIds.includes(record.id) ? 'OK' : '' }}</span>
+          <span class="select-dot" :aria-label="selectedIds.includes(record.id) ? 'Selected' : 'Not selected'">
+            {{ selectedIds.includes(record.id) ? 'OK' : '' }}
+          </span>
           <strong :class="record.type">
           {{ record.type === 'income' ? '+' : '-' }}{{ formatCurrency(record.amount) }}
           </strong>
