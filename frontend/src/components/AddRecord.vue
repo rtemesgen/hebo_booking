@@ -54,6 +54,7 @@
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
           type="button"
+          :aria-pressed="paymentMode === mode"
           @click="paymentMode = mode"
         >
           {{ mode }}
@@ -61,7 +62,9 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button :class="['submit-button', type]" type="submit" :disabled="loading">
+      {{ loading ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
@@ -73,6 +76,10 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
   },
 })
 
