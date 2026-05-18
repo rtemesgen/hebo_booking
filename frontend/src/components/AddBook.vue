@@ -8,19 +8,29 @@
 
     <label class="field">
       <span>Book name</span>
-      <input v-model.trim="name" type="text" placeholder="Example: Branch A Book" />
+      <input
+        v-model.trim="name"
+        type="text"
+        placeholder="Example: Branch A Book"
+        aria-label="Book name"
+      />
     </label>
 
-    <button class="primary-button" type="submit">Add Book</button>
+    <button :disabled="isSaving" class="primary-button" type="submit">
+      {{ isSaving ? 'Adding...' : 'Add Book' }}
+    </button>
   </form>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useBooksStore } from '../stores/books'
 
+const booksStore = useBooksStore()
 const emit = defineEmits(['submit'])
 
 const name = ref('')
+const isSaving = computed(() => booksStore.serverWriteInFlight)
 
 function submitBook() {
   if (!name.value) {

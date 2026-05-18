@@ -8,39 +8,57 @@
     <section class="top-row">
       <label class="field">
         <span>Date</span>
-        <input v-model="date" type="date" />
+        <input v-model="date" type="date" aria-label="Transaction Date" />
       </label>
 
       <label class="field">
         <span>Time</span>
-        <input v-model="time" type="time" />
+        <input v-model="time" type="time" aria-label="Transaction Time" />
       </label>
     </section>
 
     <label class="field">
       <span>Amount *</span>
-      <input v-model="amount" type="number" min="0" step="0.01" placeholder="0.00" @input="amountError = ''" />
+      <input
+        v-model="amount"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        aria-label="Amount"
+        @input="amountError = ''"
+      />
       <small v-if="amountError" class="field-error">{{ amountError }}</small>
     </label>
 
     <label class="field">
       <span>Contact (Customer/Supplier)</span>
-      <input v-model.trim="contact" type="text" placeholder="Optional contact" />
+      <input
+        v-model.trim="contact"
+        type="text"
+        placeholder="Optional contact"
+        aria-label="Contact (Customer or Supplier)"
+      />
     </label>
 
     <label class="field">
       <span>Remark</span>
-      <input v-model.trim="remark" type="text" placeholder="Write remark" />
+      <input v-model.trim="remark" type="text" placeholder="Write remark" aria-label="Remark" />
     </label>
 
     <label class="field">
       <span>Category</span>
-      <input v-model.trim="category" type="text" placeholder="Category" />
+      <input v-model.trim="category" type="text" placeholder="Category" aria-label="Category" />
     </label>
 
     <label class="field">
       <span>Attachment (Image or PDF)</span>
-      <input type="file" accept="image/*,.pdf,application/pdf" @change="onAttachmentChange" />
+      <input
+        type="file"
+        accept="image/*,.pdf,application/pdf"
+        aria-label="Attachment (Image or PDF)"
+        @change="onAttachmentChange"
+      />
       <small v-if="attachmentName" class="field-note">Selected: {{ attachmentName }}</small>
       <small v-if="attachmentError" class="field-error">{{ attachmentError }}</small>
     </label>
@@ -54,6 +72,7 @@
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
           type="button"
+          :aria-pressed="paymentMode === mode"
           @click="paymentMode = mode"
         >
           {{ mode }}
@@ -61,12 +80,15 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button :disabled="isSaving" :class="['submit-button', type]" type="submit">
+      {{ isSaving ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import { useBooksStore } from '../stores/books'
 import { saveAttachmentBlob } from '../lib/attachments'
 
 const props = defineProps({
@@ -90,6 +112,9 @@ const attachmentError = ref('')
 const attachmentName = ref('')
 const attachmentFile = ref(null)
 const paymentModes = ['Cash', 'Online', 'Bank']
+
+const booksStore = useBooksStore()
+const isSaving = computed(() => booksStore.serverWriteInFlight)
 
 const title = computed(() => (props.type === 'income' ? 'Add Cash In Entry' : 'Add Cash Out Entry'))
 
