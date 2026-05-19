@@ -19,7 +19,16 @@
 
     <label class="field">
       <span>Amount *</span>
-      <input v-model="amount" type="number" min="0" step="0.01" placeholder="0.00" @input="amountError = ''" />
+      <input
+        v-model="amount"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        required
+        aria-required="true"
+        @input="amountError = ''"
+      />
       <small v-if="amountError" class="field-error">{{ amountError }}</small>
     </label>
 
@@ -53,6 +62,7 @@
           :key="mode"
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
+          :aria-pressed="paymentMode === mode"
           type="button"
           @click="paymentMode = mode"
         >
@@ -61,13 +71,20 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button
+      :class="['submit-button', type]"
+      :disabled="booksStore.serverWriteInFlight"
+      type="submit"
+    >
+      {{ booksStore.serverWriteInFlight ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { saveAttachmentBlob } from '../lib/attachments'
+import { useBooksStore } from '../stores/books'
 
 const props = defineProps({
   type: {
@@ -77,6 +94,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['submit'])
+const booksStore = useBooksStore()
 
 const amount = ref('')
 const contact = ref('')
