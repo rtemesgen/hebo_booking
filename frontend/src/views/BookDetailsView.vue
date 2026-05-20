@@ -2,7 +2,7 @@
   <main v-if="book" class="mx-auto w-full max-w-[430px] px-2.5 pb-20 pt-2.5">
     <BookDetails :book="book" :record-count="filteredRecords.length" :show-action="false">
       <section v-if="selectedCount > 0" class="grid grid-cols-[auto_auto_1fr] items-center gap-2 rounded-[10px] border border-[#cfd8ff] bg-[#eef2ff] px-2 py-2">
-        <button class="h-[26px] min-w-[26px] rounded-lg border-0 bg-[#dfe6ff]" type="button" @click="clearSelection">x</button>
+        <button class="h-[26px] min-w-[26px] rounded-lg border-0 bg-[#dfe6ff]" type="button" @click="clearSelection" aria-label="Clear selection">x</button>
         <span class="text-[0.78rem] font-bold">{{ selectedCount }} selected</span>
         <div class="flex flex-wrap justify-end gap-1">
           <button class="rounded-lg border-0 bg-[#fffdfa] px-2 py-1.5 text-[0.72rem] font-bold text-[#2f47ba]" type="button" @click="showDeleteSheet = true">Delete</button>
@@ -65,7 +65,7 @@
     <div v-if="showFilterSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showFilterSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-8px_24px_rgba(82,61,20,0.16)]" @click.stop>
         <div class="mb-2.5 flex items-center gap-2.5">
-          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="showFilterSheet = false">x</button>
+          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="showFilterSheet = false" aria-label="Close">x</button>
           <h2 class="m-0 text-[0.92rem]">Filter Records</h2>
         </div>
 
@@ -90,7 +90,7 @@
     <div v-if="activeRecordType" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="activeRecordType = ''">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-8px_24px_rgba(82,61,20,0.16)]" @click.stop>
         <div class="mb-2.5 flex items-center gap-2.5">
-          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="activeRecordType = ''">x</button>
+          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="activeRecordType = ''" aria-label="Close">x</button>
           <h2 class="m-0 text-[0.92rem]">{{ activeRecordType === 'income' ? 'Add Cash In Entry' : 'Add Cash Out Entry' }}</h2>
         </div>
 
@@ -101,7 +101,7 @@
     <div v-if="showDeleteSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showDeleteSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-8px_24px_rgba(82,61,20,0.16)]" @click.stop>
         <div class="mb-2.5 flex items-center gap-2.5">
-          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="showDeleteSheet = false">x</button>
+          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="showDeleteSheet = false" aria-label="Close">x</button>
           <h2 class="m-0 text-[0.92rem]">Delete records</h2>
         </div>
         <p class="mb-2.5 mt-0 text-[0.82rem] text-[#5f5b48]">Delete {{ selectedCount }} selected record(s)? This cannot be undone.</p>
@@ -112,7 +112,7 @@
     <div v-if="showEditSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showEditSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-8px_24px_rgba(82,61,20,0.16)]" @click.stop>
         <div class="mb-2.5 flex items-center gap-2.5">
-          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="showEditSheet = false">x</button>
+          <button class="border-0 bg-transparent text-xl text-[#5d4930]" type="button" @click="showEditSheet = false" aria-label="Close">x</button>
           <h2 class="m-0 text-[0.92rem]">Edit record</h2>
         </div>
 
