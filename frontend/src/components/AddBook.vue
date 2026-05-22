@@ -11,14 +11,22 @@
       <input v-model.trim="name" type="text" placeholder="Example: Branch A Book" />
     </label>
 
-    <button class="primary-button" type="submit">Add Book</button>
+    <button
+      class="primary-button"
+      type="submit"
+      :disabled="booksStore.serverWriteInFlight"
+    >
+      {{ booksStore.serverWriteInFlight ? 'Adding...' : 'Add Book' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useBooksStore } from '../stores/books'
 
 const emit = defineEmits(['submit'])
+const booksStore = useBooksStore()
 
 const name = ref('')
 

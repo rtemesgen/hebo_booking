@@ -61,13 +61,20 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button
+      :class="['submit-button', type]"
+      type="submit"
+      :disabled="booksStore.serverWriteInFlight"
+    >
+      {{ booksStore.serverWriteInFlight ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { saveAttachmentBlob } from '../lib/attachments'
+import { useBooksStore } from '../stores/books'
 
 const props = defineProps({
   type: {
@@ -77,6 +84,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['submit'])
+const booksStore = useBooksStore()
 
 const amount = ref('')
 const contact = ref('')
