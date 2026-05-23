@@ -11,12 +11,21 @@
       <input v-model.trim="name" type="text" placeholder="Example: Branch A Book" />
     </label>
 
-    <button class="primary-button" type="submit">Add Book</button>
+    <button class="primary-button" type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Adding...' : 'Add Book' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+
+defineProps({
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 const emit = defineEmits(['submit'])
 
