@@ -61,7 +61,9 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button :class="['submit-button', type]" type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
@@ -73,6 +75,10 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
+  },
+  isLoading: {
+    type: Boolean,
+    default: false,
   },
 })
 
