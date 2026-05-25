@@ -19,7 +19,16 @@
 
     <label class="field">
       <span>Amount *</span>
-      <input v-model="amount" type="number" min="0" step="0.01" placeholder="0.00" @input="amountError = ''" />
+      <input
+        v-model="amount"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        required
+        aria-required="true"
+        @input="amountError = ''"
+      />
       <small v-if="amountError" class="field-error">{{ amountError }}</small>
     </label>
 
@@ -53,6 +62,7 @@
           :key="mode"
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
+          :aria-pressed="paymentMode === mode"
           type="button"
           @click="paymentMode = mode"
         >
@@ -61,13 +71,24 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button
+      :class="['submit-button', type]"
+      :disabled="serverWriteInFlight"
+      type="submit"
+    >
+      {{ serverWriteInFlight ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { saveAttachmentBlob } from '../lib/attachments'
+import { useBooksStore } from '../stores/books'
+
+const booksStore = useBooksStore()
+const { serverWriteInFlight } = storeToRefs(booksStore)
 
 const props = defineProps({
   type: {
@@ -272,5 +293,11 @@ function onAttachmentChange(event) {
 
 .submit-button.expense {
   background: linear-gradient(135deg, #d8573c, #9f2f1e);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
 }
 </style>
