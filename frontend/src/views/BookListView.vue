@@ -648,3 +648,10 @@ function getInitials(name) {
   return cleaned.slice(0, 2).toUpperCase()
 }
 </script>
+
+<style scoped>
+button:focus-visible {
+  outline: 2px solid #345acb;
+  outline-offset: 2px;
+}
+</style>
