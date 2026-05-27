@@ -1,0 +1,3 @@
+## 2025-05-14 - [Book Deletion Safety & Sheet Accessibility]
+**Learning:** Destructive actions like book deletion must be gated by a confirmation step to prevent accidental data loss. In this app's "sheet" UI pattern, maintaining a separate ref for the item being deleted (e.g., `bookToDelete`) ensures the UI remains contextually accurate even after the trigger menu is closed. Additionally, icon-only "x" buttons are common but require descriptive `aria-label` attributes for screen reader accessibility.
+**Action:** Always implement confirmation sheets for destructive actions and ensure all icon-only buttons have explicit ARIA labels.
