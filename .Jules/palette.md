@@ -1,0 +1,3 @@
+## 2025-05-15 - [Confirmation Sheet Pattern]
+**Learning:** Destructive actions (like book deletion) in a high-density list view benefit from a confirmation "sheet" that persists item identity via a dedicated ref (e.g., `bookToDelete`). This ensures the UI remains contextually accurate even if the initial selection ref (e.g., `activeMenuBook`) is cleared to hide the triggering menu.
+**Action:** When implementing multi-step confirmation flows, use a dedicated ref for the target item and encapsulate both visibility toggle and ref reset in a single cleanup function (e.g., `closeDeleteConfirmSheet`) to ensure state consistency across all exit points (cancel, close, success).
