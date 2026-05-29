@@ -8,39 +8,39 @@
     <section class="top-row">
       <label class="field">
         <span>Date</span>
-        <input v-model="date" type="date" />
+        <input v-model="date" type="date" :disabled="loading" />
       </label>
 
       <label class="field">
         <span>Time</span>
-        <input v-model="time" type="time" />
+        <input v-model="time" type="time" :disabled="loading" />
       </label>
     </section>
 
     <label class="field">
       <span>Amount *</span>
-      <input v-model="amount" type="number" min="0" step="0.01" placeholder="0.00" @input="amountError = ''" />
+      <input v-model="amount" type="number" min="0" step="0.01" placeholder="0.00" :disabled="loading" @input="amountError = ''" />
       <small v-if="amountError" class="field-error">{{ amountError }}</small>
     </label>
 
     <label class="field">
       <span>Contact (Customer/Supplier)</span>
-      <input v-model.trim="contact" type="text" placeholder="Optional contact" />
+      <input v-model.trim="contact" type="text" placeholder="Optional contact" :disabled="loading" />
     </label>
 
     <label class="field">
       <span>Remark</span>
-      <input v-model.trim="remark" type="text" placeholder="Write remark" />
+      <input v-model.trim="remark" type="text" placeholder="Write remark" :disabled="loading" />
     </label>
 
     <label class="field">
       <span>Category</span>
-      <input v-model.trim="category" type="text" placeholder="Category" />
+      <input v-model.trim="category" type="text" placeholder="Category" :disabled="loading" />
     </label>
 
     <label class="field">
       <span>Attachment (Image or PDF)</span>
-      <input type="file" accept="image/*,.pdf,application/pdf" @change="onAttachmentChange" />
+      <input type="file" accept="image/*,.pdf,application/pdf" :disabled="loading" @change="onAttachmentChange" />
       <small v-if="attachmentName" class="field-note">Selected: {{ attachmentName }}</small>
       <small v-if="attachmentError" class="field-error">{{ attachmentError }}</small>
     </label>
@@ -54,6 +54,7 @@
           class="mode-chip"
           :class="{ active: paymentMode === mode }"
           type="button"
+          :disabled="loading"
           @click="paymentMode = mode"
         >
           {{ mode }}
@@ -61,7 +62,9 @@
       </div>
     </section>
 
-    <button :class="['submit-button', type]" type="submit">Save</button>
+    <button :class="['submit-button', type]" type="submit" :disabled="loading">
+      {{ loading ? 'Saving...' : 'Save' }}
+    </button>
   </form>
 </template>
 
@@ -73,6 +76,10 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
   },
 })
 

@@ -8,15 +8,24 @@
 
     <label class="field">
       <span>Book name</span>
-      <input v-model.trim="name" type="text" placeholder="Example: Branch A Book" />
+      <input v-model.trim="name" type="text" placeholder="Example: Branch A Book" :disabled="loading" />
     </label>
 
-    <button class="primary-button" type="submit">Add Book</button>
+    <button class="primary-button" type="submit" :disabled="loading">
+      {{ loading ? 'Saving...' : 'Add Book' }}
+    </button>
   </form>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+
+defineProps({
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 const emit = defineEmits(['submit'])
 
