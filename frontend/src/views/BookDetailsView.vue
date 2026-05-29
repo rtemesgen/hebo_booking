@@ -94,7 +94,7 @@
           <h2 class="m-0 text-[0.92rem]">{{ activeRecordType === 'income' ? 'Add Cash In Entry' : 'Add Cash Out Entry' }}</h2>
         </div>
 
-        <AddRecord :type="activeRecordType" @submit="handleAddRecord" />
+        <AddRecord :type="activeRecordType" :loading="serverWriteInFlight" @submit="handleAddRecord" />
       </section>
     </div>
 
@@ -176,11 +176,13 @@ import SummaryCard from '../components/SummaryCard.vue'
 import Filters from '../components/Filters.vue'
 import RecordList from '../components/RecordList.vue'
 import AddRecord from '../components/AddRecord.vue'
+import { storeToRefs } from 'pinia'
 import { useBooksStore } from '../stores/books'
 
 const route = useRoute()
 const router = useRouter()
 const booksStore = useBooksStore()
+const { serverWriteInFlight } = storeToRefs(booksStore)
 const toast = useToast()
 
 const filters = reactive({

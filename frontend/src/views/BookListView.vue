@@ -172,7 +172,7 @@
           <h2 class="m-0 text-[0.95rem]">Add New Book</h2>
         </div>
 
-        <AddBook @submit="handleAddBook" />
+        <AddBook :loading="serverWriteInFlight" @submit="handleAddBook" />
       </section>
     </div>
 
@@ -306,7 +306,7 @@ import { useBusinessesStore } from '../stores/businesses'
 
 const booksStore = useBooksStore()
 const businessesStore = useBusinessesStore()
-const { books } = storeToRefs(booksStore)
+const { books, serverWriteInFlight } = storeToRefs(booksStore)
 const { businesses, selectedBusinessId, selectedBusiness } = storeToRefs(businessesStore)
 const toast = useToast()
 const route = useRoute()
