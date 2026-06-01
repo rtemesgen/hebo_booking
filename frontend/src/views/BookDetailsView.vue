@@ -2,7 +2,7 @@
   <main v-if="book" class="mx-auto w-full max-w-[430px] px-2.5 pb-20 pt-2.5">
     <BookDetails :book="book" :record-count="filteredRecords.length" :show-action="false">
       <section v-if="selectedCount > 0" class="grid grid-cols-[auto_auto_1fr] items-center gap-2 rounded-[10px] border border-[#cfd8ff] bg-[#eef2ff] px-2 py-2">
-        <button class="h-[26px] min-w-[26px] rounded-lg border-0 bg-[#dfe6ff]" type="button" @click="clearSelection">x</button>
+        <button aria-label="Clear selection" class="h-[26px] min-w-[26px] rounded-lg border-0 bg-[#dfe6ff]" type="button" @click="clearSelection">x</button>
         <span class="text-[0.78rem] font-bold">{{ selectedCount }} selected</span>
         <div class="flex flex-wrap justify-end gap-1">
           <button class="rounded-lg border-0 bg-[#fffdfa] px-2 py-1.5 text-[0.72rem] font-bold text-[#2f47ba]" type="button" @click="showDeleteSheet = true">Delete</button>
