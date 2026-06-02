@@ -82,9 +82,11 @@
       <button
         class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 font-bold text-[#fff8ea]"
         type="button"
+        :disabled="isRegistering"
+        :aria-busy="isRegistering"
         @click="registerTenant"
       >
-        Register Tenant
+        {{ isRegistering ? 'Registering...' : 'Register Tenant' }}
       </button>
       <button
         class="mt-2 w-full rounded-full border border-[#6553281f] bg-[#fffdfa] px-3.5 py-2.5 font-bold text-[#345acb]"
@@ -120,7 +122,7 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 
@@ -133,6 +135,7 @@ const router = useRouter()
 const businessesStore = useBusinessesStore()
 const booksStore = useBooksStore()
 
+const isRegistering = ref(false)
 const form = reactive({
   name: '',
   fullName: '',
@@ -145,69 +148,76 @@ const form = reactive({
 const tenants = computed(() => businessesStore.businesses)
 
 async function registerTenant() {
-  const result = businessesStore.registerTenant({
-    name: form.name,
-    email: form.email,
-    phone: form.phone,
-    preferredContact: form.preferredContact,
-  })
+  isRegistering.value = true
+  try {
+    const result = businessesStore.registerTenant({
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      preferredContact: form.preferredContact,
+    })
 
-  if (!result.ok) {
-    if (result.reason === 'missing_name') {
-      toast.error('Tenant name is required')
+    if (!result.ok) {
+      if (result.reason === 'missing_name') {
+        toast.error('Tenant name is required')
+        return
+      }
+      if (result.reason === 'missing_contact') {
+        toast.error('Provide email or phone')
+        return
+      }
+      if (result.reason === 'invalid_email') {
+        toast.error('Email is invalid')
+        return
+      }
+      if (result.reason === 'duplicate_name') {
+        toast.error('Tenant name already exists')
+        return
+      }
+      toast.error('Could not register tenant')
       return
     }
-    if (result.reason === 'missing_contact') {
-      toast.error('Provide email or phone')
-      return
+
+    let backendLinked = false
+    if (isBackendConfigured()) {
+      if (!form.email) {
+        toast.error('Email is required for backend registration')
+        return
+      }
+      if (!form.password || form.password.length < 6) {
+        toast.error('Password must be at least 6 characters')
+        return
+      }
+
+      try {
+        await registerUser({
+          fullName: form.fullName || form.name,
+          email: form.email,
+          password: form.password,
+          tenantName: form.name,
+        })
+        await businessesStore.syncBusinessesFromBackend()
+        await booksStore.syncFromBackendSnapshot()
+        backendLinked = true
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Backend registration failed')
+        return
+      }
     }
-    if (result.reason === 'invalid_email') {
-      toast.error('Email is invalid')
-      return
-    }
-    if (result.reason === 'duplicate_name') {
-      toast.error('Tenant name already exists')
-      return
-    }
-    toast.error('Could not register tenant')
-    return
+
+    form.name = ''
+    form.fullName = ''
+    form.email = ''
+    form.phone = ''
+    form.password = ''
+    form.preferredContact = 'email'
+    toast.success(
+      backendLinked ? 'Tenant registered and backend session started' : 'Tenant registered',
+    )
+    router.push('/')
+  } finally {
+    isRegistering.value = false
   }
-
-  let backendLinked = false
-  if (isBackendConfigured()) {
-    if (!form.email) {
-      toast.error('Email is required for backend registration')
-      return
-    }
-    if (!form.password || form.password.length < 6) {
-      toast.error('Password must be at least 6 characters')
-      return
-    }
-
-    try {
-      await registerUser({
-        fullName: form.fullName || form.name,
-        email: form.email,
-        password: form.password,
-        tenantName: form.name,
-      })
-      await businessesStore.syncBusinessesFromBackend()
-      await booksStore.syncFromBackendSnapshot()
-      backendLinked = true
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Backend registration failed')
-      return
-    }
-  }
-
-  form.name = ''
-  form.fullName = ''
-  form.email = ''
-  form.phone = ''
-  form.password = ''
-  form.preferredContact = 'email'
-  toast.success(backendLinked ? 'Tenant registered and backend session started' : 'Tenant registered')
-  router.push('/')
 }
 
 function continueAsGuest() {

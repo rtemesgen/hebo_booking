@@ -37,9 +37,11 @@
       <button
         class="w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 font-bold text-[#fff8ea]"
         type="button"
+        :disabled="isLoggingIn"
+        :aria-busy="isLoggingIn"
         @click="login"
       >
-        Login
+        {{ isLoggingIn ? 'Logging in...' : 'Login' }}
       </button>
     </section>
   </main>
@@ -61,6 +63,7 @@ const booksStore = useBooksStore()
 
 const email = ref('')
 const password = ref('')
+const isLoggingIn = ref(false)
 
 async function login() {
   if (!email.value) {
@@ -72,6 +75,7 @@ async function login() {
     return
   }
 
+  isLoggingIn.value = true
   try {
     await loginUser({
       email: email.value,
@@ -92,6 +96,8 @@ async function login() {
     router.push({ name: 'BookList' })
   } catch (error) {
     toast.error(error instanceof Error ? error.message : 'Login failed')
+  } finally {
+    isLoggingIn.value = false
   }
 }
 </script>
