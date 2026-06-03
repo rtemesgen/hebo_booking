@@ -13,7 +13,7 @@
           </div>
         </RouterLink>
 
-        <button class="menu-trigger" type="button" @click="$emit('toggle-menu', book.id)">
+        <button aria-label="Book options" class="menu-trigger" type="button" @click="$emit('toggle-menu', book.id)">
           ...
         </button>
       </article>
