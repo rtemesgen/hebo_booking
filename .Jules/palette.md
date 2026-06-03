@@ -1,0 +1,3 @@
+## 2025-05-15 - [Book Deletion Confirmation and Accessibility]
+**Learning:** Destructive actions like book deletion should always have a confirmation step to prevent accidental data loss. Using a bottom sheet consistent with the app's UI language provides a smooth transition while ensuring user intent. Additionally, icon-only buttons (like "..." or "x") are completely inaccessible to screen readers unless they have descriptive `aria-label` attributes.
+**Action:** Always implement a confirmation modal/sheet for destructive actions. For modal accessibility, use `role="alertdialog"`, `aria-modal="true"`, and `aria-labelledby`. Ensure all icon-only buttons have context-specific `aria-label` attributes.
