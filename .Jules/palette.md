@@ -1,0 +1,3 @@
+## 2025-05-14 - Book Deletion Confirmation and Accessibility
+**Learning:** Destructive actions like book deletion must have a confirmation step to prevent accidental data loss. In multi-step flows (like opening a menu then a modal), use a separate ref to persist item identity since the initial menu-triggering ref might be cleared. Icon-only buttons MUST have descriptive ARIA labels for accessibility.
+**Action:** Always implement a confirmation dialog for destructive actions. Add descriptive `aria-label` to all icon-only buttons. Use `{ exact: true }` in Playwright tests for button names to avoid ambiguity caused by descriptive ARIA labels.
