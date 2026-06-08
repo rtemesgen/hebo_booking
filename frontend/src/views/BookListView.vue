@@ -290,6 +290,44 @@
         </section>
       </section>
     </div>
+
+    <div
+      v-if="showDeleteConfirmSheet"
+      class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]"
+      @click="closeDeleteConfirmSheet"
+    >
+      <section
+        class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        @click.stop
+      >
+        <div class="mb-3.5 flex items-center gap-3">
+          <button
+            class="border-0 bg-transparent text-2xl text-[#5d4930]"
+            type="button"
+            aria-label="Close"
+            @click="closeDeleteConfirmSheet"
+          >
+            x
+          </button>
+          <h2 id="delete-confirm-title" class="m-0 text-[0.95rem]">Delete Book</h2>
+        </div>
+
+        <p class="mb-4 text-[0.88rem] text-[#5d4930]">
+          Are you sure you want to delete <strong>{{ bookToDelete?.name }}</strong>? This action cannot be undone and all records within this book will be lost.
+        </p>
+
+        <button
+          class="w-full rounded-full border-0 bg-[#c23c37] px-3.5 py-3 text-center font-bold text-[#fff8ea] shadow-[0_12px_24px_rgba(194,60,55,0.18)]"
+          type="button"
+          @click="confirmDeleteBook"
+        >
+          Confirm Delete
+        </button>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -318,9 +356,11 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmSheet = ref(false)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
+const bookToDelete = ref(null)
 const renameValue = ref('')
 const newBusinessName = ref('')
 const inviteMode = ref('link')
@@ -463,18 +503,35 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
+function deleteSelectedBook() {
+  const currentBook = booksStore.getBookById(activeMenuBook.value)
+  if (!currentBook) {
     return
   }
 
-  const removed = await booksStore.removeBook(activeMenuBook.value)
+  bookToDelete.value = currentBook
+  showDeleteConfirmSheet.value = true
+  activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) {
+    return
+  }
+
+  const removed = await booksStore.removeBook(bookToDelete.value.id)
   if (!removed) {
     toast.error('Could not delete book')
     return
   }
+
   toast.success('Book deleted')
-  activeMenuBook.value = null
+  closeDeleteConfirmSheet()
+}
+
+function closeDeleteConfirmSheet() {
+  showDeleteConfirmSheet.value = false
+  bookToDelete.value = null
 }
 
 function openBookTransfer(mode) {
@@ -532,6 +589,20 @@ onMounted(async () => {
     return
   }
   await booksStore.syncFromBackendSnapshot()
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (showDeleteConfirmSheet.value) closeDeleteConfirmSheet()
+      activeMenuBook.value = null
+      showBusinessSheet.value = false
+      showAddBusinessSheet.value = false
+      showAddBookSheet.value = false
+      showSearchSheet.value = false
+      showSortSheet.value = false
+      showInviteSheet.value = false
+      showRenameSheet.value = false
+    }
+  })
 })
 
 function getBusinessBookCount(businessId) {
