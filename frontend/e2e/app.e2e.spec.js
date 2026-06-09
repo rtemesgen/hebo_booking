@@ -22,10 +22,44 @@ test.describe('Hebo app', () => {
     await page.getByPlaceholder('Example: Branch A Book').fill('Offline Book One')
     await page
       .locator('section', { has: page.getByRole('heading', { name: 'Add New Book' }) })
-      .getByRole('button', { name: 'Add Book' })
+      .getByRole('button', { name: 'Add Book', exact: true })
       .click()
 
     await expect(page.getByText('Offline Book One')).toBeVisible()
+  })
+
+  test('requires confirmation to delete a book', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await page.getByRole('button', { name: 'Continue as Guest' }).click()
+    await expect(page.getByRole('heading', { name: 'Your Books' })).toBeVisible()
+
+    // Add a book to delete
+    await page.getByRole('button', { name: /^\+ Add Book$/ }).click()
+    await page.getByPlaceholder('Example: Branch A Book').fill('Book to Delete')
+    await page
+      .locator('section', { has: page.getByRole('heading', { name: 'Add New Book' }) })
+      .getByRole('button', { name: 'Add Book', exact: true })
+      .click()
+    await expect(page.getByText('Book to Delete')).toBeVisible()
+
+    // Open menu and click delete
+    await page.getByRole('button', { name: 'Book options' }).click()
+    await page.getByRole('button', { name: 'Delete Book' }).click()
+
+    // Verify confirmation sheet is shown
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText('Delete this book?')).toBeVisible()
+    await expect(dialog.getByText('Book to Delete')).toBeVisible()
+
+    // Click Delete Book in confirmation sheet
+    await page
+      .locator('role=alertdialog')
+      .getByRole('button', { name: 'Delete Book' })
+      .click()
+
+    // Verify book is gone
+    await expect(page.getByText('Book to Delete')).not.toBeVisible()
   })
 
   test('backend health endpoint is reachable when backend is running', async ({ request }) => {
@@ -53,7 +87,7 @@ test.describe('Hebo app', () => {
     await page.getByPlaceholder('Example: Branch A Book').fill(`Offline Sync Book ${stamp}`)
     await page
       .locator('section', { has: page.getByRole('heading', { name: 'Add New Book' }) })
-      .getByRole('button', { name: 'Add Book' })
+      .getByRole('button', { name: 'Add Book', exact: true })
       .click()
     await expect(page.getByText(`Offline Sync Book ${stamp}`)).toBeVisible()
 
