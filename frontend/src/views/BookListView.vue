@@ -82,7 +82,7 @@
     <div v-if="showSearchSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showSearchSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="showSearchSheet = false">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close search" @click="showSearchSheet = false">x</button>
           <h2 class="m-0 text-[0.95rem]">Search by book name</h2>
         </div>
         <input
@@ -97,7 +97,7 @@
     <div v-if="showSortSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showSortSheet = false">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="showSortSheet = false">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close sort" @click="showSortSheet = false">x</button>
           <h2 class="m-0 text-[0.95rem]">Sort Books By</h2>
         </div>
 
@@ -117,7 +117,7 @@
     <div v-if="showBusinessSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeBusinessSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeBusinessSheet">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close business selection" @click="closeBusinessSheet">x</button>
           <h2 class="m-0 text-[0.95rem]">Select Business</h2>
         </div>
 
@@ -145,7 +145,7 @@
     <div v-if="showAddBusinessSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeAddBusinessSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeAddBusinessSheet">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close add business" @click="closeAddBusinessSheet">x</button>
           <h2 class="m-0 text-[0.95rem]">Add New Business</h2>
         </div>
 
@@ -168,7 +168,7 @@
     <div v-if="showAddBookSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeAddBookSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeAddBookSheet">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close add book" @click="closeAddBookSheet">x</button>
           <h2 class="m-0 text-[0.95rem]">Add New Book</h2>
         </div>
 
@@ -179,7 +179,7 @@
     <div v-if="showRenameSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeRenameSheet">
       <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-3.5 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeRenameSheet">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close rename book" @click="closeRenameSheet">x</button>
           <h2 class="m-0 text-[0.95rem]">Rename Book</h2>
         </div>
 
@@ -194,10 +194,35 @@
       </section>
     </div>
 
+    <div v-if="showDeleteConfirmSheet" class="fixed inset-0 z-30 flex items-end justify-center bg-black/45" @click="closeDeleteConfirmSheet">
+      <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" @click.stop>
+        <div class="mb-3.5 flex items-center gap-3">
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close delete confirmation" @click="closeDeleteConfirmSheet">x</button>
+          <h2 id="delete-confirm-title" class="m-0 text-[0.95rem]">Delete Book</h2>
+        </div>
+        <p class="mb-4 text-[0.85rem] text-[#5d4930]">
+          Are you sure you want to delete <strong>{{ bookToDelete?.name }}</strong>? This action cannot be undone and all records in this book will be permanently removed.
+        </p>
+        <div class="flex gap-2">
+          <button class="flex-1 rounded-full border border-[#6553281f] bg-[#fffdfa] px-3.5 py-2.5 text-center font-bold text-[#5d4930]" type="button" @click="closeDeleteConfirmSheet">
+            Cancel
+          </button>
+          <button
+            class="flex-1 rounded-full border-0 bg-[#c23c37] px-3.5 py-2.5 text-center font-bold text-white shadow-[0_12px_24px_rgba(194,60,55,0.18)] disabled:opacity-50"
+            type="button"
+            :disabled="serverWriteInFlight"
+            @click="confirmDeleteBook"
+          >
+            {{ serverWriteInFlight ? 'Deleting...' : 'Delete Book' }}
+          </button>
+        </div>
+      </section>
+    </div>
+
     <div v-if="showInviteSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeInviteSheet">
       <section class="grid w-full max-w-[430px] gap-4 rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-1 flex items-center gap-3">
-          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" @click="closeInviteSheet">x</button>
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close invite team member" @click="closeInviteSheet">x</button>
           <h2 class="m-0 text-[0.95rem]">Add Team Member</h2>
         </div>
 
@@ -308,6 +333,7 @@ const booksStore = useBooksStore()
 const businessesStore = useBusinessesStore()
 const { books } = storeToRefs(booksStore)
 const { businesses, selectedBusinessId, selectedBusiness } = storeToRefs(businessesStore)
+const { serverWriteInFlight } = storeToRefs(booksStore)
 const toast = useToast()
 const route = useRoute()
 const router = useRouter()
@@ -318,9 +344,11 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmSheet = ref(false)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
+const bookToDelete = ref(null)
 const renameValue = ref('')
 const newBusinessName = ref('')
 const inviteMode = ref('link')
@@ -463,18 +491,34 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
+function deleteSelectedBook() {
   if (!activeMenuBook.value) {
     return
   }
 
-  const removed = await booksStore.removeBook(activeMenuBook.value)
+  bookToDelete.value = booksStore.getBookById(activeMenuBook.value)
+  activeMenuBook.value = null
+  showDeleteConfirmSheet.value = true
+}
+
+function closeDeleteConfirmSheet() {
+  showDeleteConfirmSheet.value = false
+  bookToDelete.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) {
+    return
+  }
+
+  const bookId = bookToDelete.value.id
+  const removed = await booksStore.removeBook(bookId)
   if (!removed) {
     toast.error('Could not delete book')
     return
   }
   toast.success('Book deleted')
-  activeMenuBook.value = null
+  closeDeleteConfirmSheet()
 }
 
 function openBookTransfer(mode) {
