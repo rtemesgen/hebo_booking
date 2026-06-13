@@ -17,6 +17,7 @@
 
       <button
         v-if="showAction"
+        aria-label="Add record"
         class="h-9 w-9 rounded-xl border-0 text-[1.2rem] text-white shadow-[0_12px_20px_rgba(67,97,216,0.25)] [background:linear-gradient(135deg,#4361d8,#5a7cff)]"
         type="button"
         @click="$emit('toggle-actions')"
