@@ -1,0 +1,3 @@
+## 2026-06-14 - Modal Confirmation and ARIA Labels
+**Learning:** Destructive actions like book deletion must have a confirmation step that explicitly names the entity being deleted to reduce user error. Adding ARIA labels to icon-only buttons is essential for screen reader accessibility, but can cause ambiguity in E2E tests if the labels overlap with other UI text (e.g., "Add Book" button vs. "Add Book" title).
+**Action:** Always use a dedicated ref (e.g., `bookToDelete`) to persist item identity for confirmation modals, and use `exact: true` in Playwright locators to avoid collisions with descriptive ARIA labels.
