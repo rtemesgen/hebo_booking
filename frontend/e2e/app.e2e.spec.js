@@ -22,7 +22,7 @@ test.describe('Hebo app', () => {
     await page.getByPlaceholder('Example: Branch A Book').fill('Offline Book One')
     await page
       .locator('section', { has: page.getByRole('heading', { name: 'Add New Book' }) })
-      .getByRole('button', { name: 'Add Book' })
+      .getByRole('button', { name: 'Add Book', exact: true })
       .click()
 
     await expect(page.getByText('Offline Book One')).toBeVisible()
