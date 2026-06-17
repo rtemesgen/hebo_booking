@@ -194,6 +194,20 @@
       </section>
     </div>
 
+    <div v-if="showDeleteConfirmSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" role="alertdialog" aria-modal="true" aria-labelledby="del-title" @click="closeDeleteConfirmSheet">
+      <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
+        <div class="mb-3.5 flex items-center gap-3">
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close" @click="closeDeleteConfirmSheet">x</button>
+          <h2 id="del-title" class="m-0 text-[0.95rem]">Delete '{{ bookToDelete?.name }}'?</h2>
+        </div>
+        <p class="mb-5 text-[0.85rem] text-[#5d4930]">Permanently remove this book and all its records? Action cannot be undone.</p>
+        <div class="grid gap-2">
+          <button id="delete-btn" class="w-full rounded-full border-0 bg-[#c23c37] py-2.5 font-bold text-[#fff8ea] disabled:opacity-50" type="button" :disabled="serverWriteInFlight" @click="confirmDeleteBook">{{ serverWriteInFlight ? 'Deleting...' : 'Yes, Delete Book' }}</button>
+          <button class="w-full rounded-full border border-[#6553281f] py-2.5 font-bold text-[#5d4930]" type="button" @click="closeDeleteConfirmSheet">Cancel</button>
+        </div>
+      </section>
+    </div>
+
     <div v-if="showInviteSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeInviteSheet">
       <section class="grid w-full max-w-[430px] gap-4 rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
         <div class="mb-1 flex items-center gap-3">
@@ -294,7 +308,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -306,7 +320,7 @@ import { useBusinessesStore } from '../stores/businesses'
 
 const booksStore = useBooksStore()
 const businessesStore = useBusinessesStore()
-const { books } = storeToRefs(booksStore)
+const { books, serverWriteInFlight } = storeToRefs(booksStore)
 const { businesses, selectedBusinessId, selectedBusiness } = storeToRefs(businessesStore)
 const toast = useToast()
 const route = useRoute()
@@ -318,9 +332,12 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmSheet = ref(false)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
+const bookToDelete = ref(null)
+const lastFocusedElement = ref(null)
 const renameValue = ref('')
 const newBusinessName = ref('')
 const inviteMode = ref('link')
@@ -463,18 +480,29 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
-    return
-  }
-
-  const removed = await booksStore.removeBook(activeMenuBook.value)
-  if (!removed) {
-    toast.error('Could not delete book')
-    return
-  }
-  toast.success('Book deleted')
+function deleteSelectedBook() {
+  const book = booksStore.getBookById(activeMenuBook.value)
+  if (!book) return
+  bookToDelete.value = book
+  lastFocusedElement.value = document.activeElement
+  showDeleteConfirmSheet.value = true
   activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) return
+  if (await booksStore.removeBook(bookToDelete.value.id)) {
+    toast.success('Book deleted')
+    closeDeleteConfirmSheet()
+  } else {
+    toast.error('Could not delete book')
+  }
+}
+
+function closeDeleteConfirmSheet() {
+  showDeleteConfirmSheet.value = false
+  bookToDelete.value = null
+  lastFocusedElement.value?.focus()
 }
 
 function openBookTransfer(mode) {
@@ -526,12 +554,19 @@ async function addBusiness() {
   toast.success('Business added')
 }
 
+const handleEscape = (e) => e.key === 'Escape' && closeDeleteConfirmSheet()
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleEscape)
   const result = await businessesStore.syncBusinessesFromBackend()
-  if (!result.ok) {
-    return
-  }
+  if (!result.ok) return
   await booksStore.syncFromBackendSnapshot()
+})
+
+onUnmounted(() => window.removeEventListener('keydown', handleEscape))
+
+watch(showDeleteConfirmSheet, (val) => {
+  if (val) setTimeout(() => document.getElementById('delete-btn')?.focus(), 50)
 })
 
 function getBusinessBookCount(businessId) {
