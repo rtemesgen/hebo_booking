@@ -290,11 +290,45 @@
         </section>
       </section>
     </div>
+
+    <div v-if="showDeleteConfirmSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="closeDeleteConfirmSheet">
+      <section
+        class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-4 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        @click.stop
+      >
+        <h2 id="delete-confirm-title" class="mb-2 mt-0 text-lg font-bold text-[#342716]">
+          Delete '{{ bookToDelete?.name }}'?
+        </h2>
+        <p class="mb-6 text-[0.85rem] text-[#7a715f]">
+          This action cannot be undone. All records in this book will be permanently removed.
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            class="rounded-full border border-[#6553281f] bg-[#fffdfa] px-4 py-2.5 text-[0.85rem] font-bold text-[#5d4930]"
+            type="button"
+            @click="closeDeleteConfirmSheet"
+          >
+            Cancel
+          </button>
+          <button
+            class="rounded-full border-0 bg-[#c23c37] px-4 py-2.5 text-[0.85rem] font-bold text-white shadow-[0_8px_16px_rgba(194,60,55,0.2)]"
+            type="button"
+            @click="confirmDeleteBook"
+          >
+            Delete Book
+          </button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -318,6 +352,8 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmSheet = ref(false)
+const bookToDelete = ref(null)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -464,17 +500,34 @@ async function duplicateSelectedBook() {
 }
 
 async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
+  const currentBook = booksStore.getBookById(activeMenuBook.value)
+  if (!currentBook) {
     return
   }
 
-  const removed = await booksStore.removeBook(activeMenuBook.value)
+  bookToDelete.value = currentBook
+  activeMenuBook.value = null
+  showDeleteConfirmSheet.value = true
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) {
+    return
+  }
+
+  const removed = await booksStore.removeBook(bookToDelete.value.id)
   if (!removed) {
     toast.error('Could not delete book')
     return
   }
+
   toast.success('Book deleted')
-  activeMenuBook.value = null
+  closeDeleteConfirmSheet()
+}
+
+function closeDeleteConfirmSheet() {
+  showDeleteConfirmSheet.value = false
+  bookToDelete.value = null
 }
 
 function openBookTransfer(mode) {
@@ -526,12 +579,29 @@ async function addBusiness() {
   toast.success('Business added')
 }
 
+function handleGlobalEsc(e) {
+  if (e.key === 'Escape') {
+    closeDeleteConfirmSheet()
+    closeRenameSheet()
+    closeAddBookSheet()
+    closeAddBusinessSheet()
+    closeBusinessSheet()
+    showSearchSheet.value = false
+    showSortSheet.value = false
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleGlobalEsc)
   const result = await businessesStore.syncBusinessesFromBackend()
   if (!result.ok) {
     return
   }
   await booksStore.syncFromBackendSnapshot()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalEsc)
 })
 
 function getBusinessBookCount(businessId) {
