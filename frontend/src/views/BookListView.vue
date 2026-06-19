@@ -290,11 +290,52 @@
         </section>
       </section>
     </div>
+
+    <div
+      v-if="showDeleteConfirmSheet"
+      class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]"
+      @click="closeDeleteConfirmSheet"
+    >
+      <section
+        class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        @click.stop
+      >
+        <div class="mb-4">
+          <h2 id="delete-confirm-title" class="m-0 text-[1rem] text-[#342716]">
+            Delete '{{ bookToDelete?.name }}'?
+          </h2>
+          <p class="mt-2 text-[0.85rem] text-[#7a715f]">
+            This will permanently remove this book and all its records. This action cannot be undone.
+          </p>
+        </div>
+
+        <div class="grid gap-2">
+          <button
+            class="w-full rounded-full border-0 bg-[#c23c37] px-3.5 py-2.5 font-bold text-white shadow-[0_12px_24px_rgba(194,60,55,0.18)]"
+            type="button"
+            @click="confirmDeleteBook"
+          >
+            Delete Book
+          </button>
+          <button
+            ref="deleteCancelButton"
+            class="w-full rounded-full border border-[#6553281f] bg-[#fffdfa] px-3.5 py-2.5 font-bold text-[#5d4930]"
+            type="button"
+            @click="closeDeleteConfirmSheet"
+          >
+            Cancel
+          </button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -318,6 +359,9 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmSheet = ref(false)
+const bookToDelete = ref(null)
+const deleteCancelButton = ref(null)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -463,19 +507,43 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
+function deleteSelectedBook() {
+  const book = booksStore.getBookById(activeMenuBook.value)
+  if (!book) {
     return
   }
 
-  const removed = await booksStore.removeBook(activeMenuBook.value)
+  bookToDelete.value = book
+  showDeleteConfirmSheet.value = true
+  activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) {
+    return
+  }
+
+  const removed = await booksStore.removeBook(bookToDelete.value.id)
   if (!removed) {
     toast.error('Could not delete book')
     return
   }
+
   toast.success('Book deleted')
-  activeMenuBook.value = null
+  closeDeleteConfirmSheet()
 }
+
+function closeDeleteConfirmSheet() {
+  showDeleteConfirmSheet.value = false
+  bookToDelete.value = null
+}
+
+watch(showDeleteConfirmSheet, async (val) => {
+  if (val) {
+    await nextTick()
+    deleteCancelButton.value?.focus()
+  }
+})
 
 function openBookTransfer(mode) {
   if (!activeMenuBook.value) {
