@@ -1,0 +1,3 @@
+## 2025-05-14 - [Destructive Action Confirmation Pattern]
+**Learning:** Destructive actions (like deleting a book) require a multi-step confirmation flow using a slide-up 'sheet' pattern to prevent accidental data loss. For optimal accessibility and safety, the 'Cancel' button must be focused by default upon opening the dialog, and the dialog must use `role="alertdialog"` with `aria-modal="true"` and an explicit `aria-labelledby` linked to the title.
+**Action:** Always implement a confirmation sheet for destructive actions in `BookListView.vue` and similar views, ensuring focus management (via Vue watcher and `nextTick`) targets the non-destructive action button.
