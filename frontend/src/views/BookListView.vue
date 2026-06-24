@@ -290,11 +290,27 @@
         </section>
       </section>
     </div>
+
+    <div v-if="showDeleteConfirmSheet" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" @click="closeDeleteConfirmSheet">
+      <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-4 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
+        <h2 id="delete-confirm-title" class="mb-2 mt-0 text-[1rem] text-[#342716]">Delete '{{ bookToDelete?.name }}'?</h2>
+        <p class="mb-5 mt-0 text-[0.84rem] text-[#7a715f]">All records in this book will be permanently removed. This action cannot be undone.</p>
+
+        <div class="grid gap-2">
+          <button class="w-full rounded-full border-0 bg-[#c23c37] py-3 text-[0.85rem] font-bold text-[#fff8ea] shadow-[0_8px_20px_rgba(194,60,55,0.15)] disabled:opacity-50" type="button" :disabled="booksStore.serverWriteInFlight" @click="confirmDeleteBook">
+            {{ booksStore.serverWriteInFlight ? 'Deleting...' : 'Yes, Delete Book' }}
+          </button>
+          <button ref="cancelDeleteBtn" class="w-full rounded-full border border-[#6553281f] bg-[#fffdfa] py-3 text-[0.85rem] font-bold text-[#5d4930]" type="button" @click="closeDeleteConfirmSheet">
+            No, Keep Book
+          </button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -318,9 +334,12 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmSheet = ref(false)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
+const bookToDelete = ref(null)
+const cancelDeleteBtn = ref(null)
 const renameValue = ref('')
 const newBusinessName = ref('')
 const inviteMode = ref('link')
@@ -396,6 +415,13 @@ const inviteMailto = computed(() => {
 })
 const businessMembers = computed(() => businessesStore.getMembersForBusiness(selectedBusinessId.value))
 
+watch(showDeleteConfirmSheet, async (isOpen) => {
+  if (isOpen) {
+    await nextTick()
+    cancelDeleteBtn.value?.focus()
+  }
+})
+
 async function handleAddBook(payload) {
   const created = await booksStore.createBook({
     ...payload,
@@ -463,18 +489,35 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
+function deleteSelectedBook() {
+  const currentBook = booksStore.getBookById(activeMenuBook.value)
+  if (!currentBook) {
     return
   }
 
-  const removed = await booksStore.removeBook(activeMenuBook.value)
+  bookToDelete.value = currentBook
+  showDeleteConfirmSheet.value = true
+  activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) {
+    return
+  }
+
+  const removed = await booksStore.removeBook(bookToDelete.value.id)
   if (!removed) {
     toast.error('Could not delete book')
     return
   }
+
   toast.success('Book deleted')
-  activeMenuBook.value = null
+  closeDeleteConfirmSheet()
+}
+
+function closeDeleteConfirmSheet() {
+  showDeleteConfirmSheet.value = false
+  bookToDelete.value = null
 }
 
 function openBookTransfer(mode) {
