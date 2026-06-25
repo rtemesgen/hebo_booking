@@ -1,0 +1,3 @@
+## 2025-05-14 - [Accessibility and Safety in Confirmation Dialogs]
+**Learning:** Confirmation dialogs for destructive actions must prioritize safety by focusing the 'Cancel' button by default and disabling all actions during asynchronous processing to prevent redundant requests. Using 'role="alertdialog"' and 'aria-modal="true"' with 'aria-labelledby' ensures screen reader users receive the correct context immediately.
+**Action:** Always implement 'nextTick' watchers on visibility flags to focus non-destructive buttons and leverage 'serverWriteInFlight' states to disable UI elements during async operations.
