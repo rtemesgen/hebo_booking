@@ -1,0 +1,3 @@
+## 2025-07-04 - Destructive Action Confirmations with Context
+**Learning:** Confirmation sheets for destructive actions (like deleting a book) are much more effective when they explicitly name the entity being removed. This reduces accidental deletions in list views where multiple items might look similar. Additionally, in the Hebo app's pattern of inline `v-if` overlays, ensure that opening a confirmation overlay from a menu correctly manages the lifecycle of the parent menu to avoid UI state conflicts.
+**Action:** Always include the target entity's name in confirmation prompts. When triggering a confirmation sheet from a book's options menu, ensure the menu state is handled cleanly to prevent overlays from potentially overlapping or remaining open incorrectly.
