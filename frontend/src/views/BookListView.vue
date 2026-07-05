@@ -291,6 +291,16 @@
       </section>
     </div>
   </main>
+    <div v-if="showDeleteConfirmation" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showDeleteConfirmation = false">
+      <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" @click.stop>
+        <div class="mb-3.5 flex items-center gap-3">
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" aria-label="Close" type="button" @click="showDeleteConfirmation = false">x</button>
+          <h2 class="m-0 text-[0.95rem]">Delete Book</h2>
+        </div>
+        <p class="mb-4 mt-0 text-[0.85rem] text-[#7a715f]">Delete <strong>{{ bookToDelete?.name }}</strong>? This cannot be undone.</p>
+        <button class="w-full rounded-full border-0 bg-[#c23c37] px-3.5 py-2.5 text-center font-bold text-white shadow-[0_12px_24px_rgba(194,60,55,0.18)]" type="button" @click="confirmDeleteBook">Confirm Delete</button>
+      </section>
+    </div>
 </template>
 
 <script setup>
@@ -318,6 +328,8 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmation = ref(false)
+const bookToDelete = ref(null)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -463,18 +475,20 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
-    return
-  }
-
-  const removed = await booksStore.removeBook(activeMenuBook.value)
-  if (!removed) {
-    toast.error('Could not delete book')
-    return
-  }
-  toast.success('Book deleted')
+function deleteSelectedBook() {
+  if (!activeMenuBook.value) return
+  bookToDelete.value = booksStore.getBookById(activeMenuBook.value)
+  if (bookToDelete.value) showDeleteConfirmation.value = true
   activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) return
+  const removed = await booksStore.removeBook(bookToDelete.value.id)
+  if (!removed) toast.error('Could not delete book')
+  else toast.success('Book deleted')
+  showDeleteConfirmation.value = false
+  bookToDelete.value = null
 }
 
 function openBookTransfer(mode) {
