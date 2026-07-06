@@ -2,6 +2,7 @@
   <main class="mx-auto grid w-full max-w-[430px] gap-3 px-2.5 pb-4 pt-2.5">
     <header class="flex items-center gap-2">
       <RouterLink
+        aria-label="Back to books"
         class="grid h-9 w-9 place-items-center rounded-xl border border-[#6553281f] bg-[#fffdfa] text-[#2f3352] no-underline"
         to="/"
       >
