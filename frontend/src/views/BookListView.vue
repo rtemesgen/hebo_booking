@@ -259,7 +259,7 @@
             </select>
           </label>
 
-          <a class="block w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] no-underline shadow-[0_12px_24px_rgba(20,83,45,0.18)]" :href="inviteMailto">
+          <a class="block w-full rounded-full border-0 bg-[linear-gradient(135deg,#14532d,#1f7a45)] px-3.5 py-2.5 text-center text-[#fff8ea] no-underline shadow-[0_12px_24_rgba(20,83,45,0.18)]" :href="inviteMailto">
             Send Invite Email
           </a>
 
@@ -290,11 +290,33 @@
         </section>
       </section>
     </div>
+
+    <div v-if="showDeleteConfirmation" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="!serverWriteInFlight && (showDeleteConfirmation = false)">
+      <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" @click.stop>
+        <div class="mb-3.5 flex items-center gap-3">
+          <button class="border-0 bg-transparent text-2xl text-[#5d4930]" type="button" aria-label="Close" :disabled="serverWriteInFlight" @click="showDeleteConfirmation = false">x</button>
+          <h2 id="delete-confirm-title" class="m-0 text-[0.95rem]">Delete '{{ bookToDelete?.name }}'?</h2>
+        </div>
+
+        <p class="mb-4 text-[0.85rem] text-[#7a715f]">
+          This will permanently delete this book and all its records. This action cannot be undone.
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button ref="cancelDeleteBtn" class="rounded-full border border-[#6553281f] bg-[#fffdfa] px-3.5 py-2.5 text-center font-bold text-[#342716]" type="button" :disabled="serverWriteInFlight" @click="showDeleteConfirmation = false">
+            Cancel
+          </button>
+          <button class="rounded-full border-0 bg-[#c23c37] px-3.5 py-2.5 text-center font-bold text-[#fff8ea] shadow-[0_12px_24px_rgba(194,60,55,0.18)]" type="button" :disabled="serverWriteInFlight" @click="confirmDeleteBook">
+            {{ serverWriteInFlight ? 'Deleting...' : 'Delete Permanently' }}
+          </button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -306,7 +328,7 @@ import { useBusinessesStore } from '../stores/businesses'
 
 const booksStore = useBooksStore()
 const businessesStore = useBusinessesStore()
-const { books } = storeToRefs(booksStore)
+const { books, serverWriteInFlight } = storeToRefs(booksStore)
 const { businesses, selectedBusinessId, selectedBusiness } = storeToRefs(businessesStore)
 const toast = useToast()
 const route = useRoute()
@@ -318,6 +340,9 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirmation = ref(false)
+const bookToDelete = ref(null)
+const cancelDeleteBtn = ref(null)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -463,18 +488,35 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
+function deleteSelectedBook() {
   if (!activeMenuBook.value) {
     return
   }
 
-  const removed = await booksStore.removeBook(activeMenuBook.value)
-  if (!removed) {
-    toast.error('Could not delete book')
+  bookToDelete.value = booksStore.getBookById(activeMenuBook.value)
+  if (!bookToDelete.value) {
+    activeMenuBook.value = null
     return
   }
-  toast.success('Book deleted')
+
+  showDeleteConfirmation.value = true
   activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (!bookToDelete.value) {
+    return
+  }
+
+  const removed = await booksStore.removeBook(bookToDelete.value.id)
+  if (!removed) {
+    toast.error('Could not delete book')
+  } else {
+    toast.success('Book deleted')
+  }
+
+  showDeleteConfirmation.value = false
+  bookToDelete.value = null
 }
 
 function openBookTransfer(mode) {
@@ -526,12 +568,38 @@ async function addBusiness() {
   toast.success('Business added')
 }
 
+watch(showDeleteConfirmation, async (open) => {
+  if (open) {
+    await nextTick()
+    cancelDeleteBtn.value?.focus()
+  }
+})
+
+const handleEscape = (e) => {
+  if (e.key === 'Escape') {
+    showDeleteConfirmation.value = false
+    showBusinessSheet.value = false
+    showAddBusinessSheet.value = false
+    showAddBookSheet.value = false
+    showSearchSheet.value = false
+    showSortSheet.value = false
+    showInviteSheet.value = false
+    showRenameSheet.value = false
+    activeMenuBook.value = null
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleEscape)
   const result = await businessesStore.syncBusinessesFromBackend()
   if (!result.ok) {
     return
   }
   await booksStore.syncFromBackendSnapshot()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscape)
 })
 
 function getBusinessBookCount(businessId) {

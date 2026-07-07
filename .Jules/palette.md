@@ -1,0 +1,3 @@
+## 2025-07-07 - Accessible Book Deletion Confirmation
+**Learning:** Destructive actions like deleting a book require a high-friction confirmation workflow to prevent data loss. For accessibility, these should use `role="alertdialog"` and `aria-modal="true"`. Focus management is critical: focusing the 'Cancel' button by default on open prevents accidental keyboard-triggered confirmation. Consolidating modal closing logic into a global 'Escape' key listener ensures a consistent user experience.
+**Action:** Always implement `role="alertdialog"` for confirmation modals, use `watch` and `nextTick` for programmatic focus management, and provide a global 'Escape' key handler for interactive sheets.
