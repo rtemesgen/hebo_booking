@@ -290,11 +290,25 @@
         </section>
       </section>
     </div>
+
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-20 flex items-end justify-center bg-[rgba(27,31,44,0.45)]" @click="showDeleteConfirm = false">
+      <section class="w-full max-w-[430px] rounded-t-2xl bg-[rgba(255,252,244,0.98)] p-3 shadow-[0_-10px_40px_rgba(82,61,20,0.18)]" role="alertdialog" aria-modal="true" aria-labelledby="del-title" @click.stop>
+        <div class="mb-3 flex items-center gap-3">
+          <button class="border-0 bg-transparent text-2xl" type="button" aria-label="Close" @click="showDeleteConfirm = false">x</button>
+          <h2 id="del-title" class="m-0 text-[0.95rem]">Delete '{{ bookToDelete?.name }}'?</h2>
+        </div>
+        <p class="mb-4 text-[0.85rem] text-[#7a715f]">This action cannot be undone.</p>
+        <div class="grid grid-cols-2 gap-3">
+          <button ref="cancelDeleteBtn" class="rounded-full border border-[#6553281f] py-2.5 font-bold" type="button" @click="showDeleteConfirm = false">Cancel</button>
+          <button class="rounded-full bg-[#c23c37] py-2.5 font-bold text-white" type="button" :disabled="booksStore.serverWriteInFlight" @click="confirmDeleteBook">Delete</button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -318,6 +332,9 @@ const showSearchSheet = ref(false)
 const showSortSheet = ref(false)
 const showInviteSheet = ref(false)
 const showRenameSheet = ref(false)
+const showDeleteConfirm = ref(false)
+const bookToDelete = ref(null)
+const cancelDeleteBtn = ref(null)
 const searchQuery = ref('')
 const sortBy = ref('updated')
 const activeMenuBook = ref(null)
@@ -328,6 +345,13 @@ const inviteEmail = ref('')
 const inviteRole = ref('employee')
 const inviteStatus = ref('')
 const selectedInviteBookId = ref('')
+
+watch(showDeleteConfirm, async (val) => {
+  if (val) {
+    await nextTick()
+    cancelDeleteBtn.value?.focus()
+  }
+})
 
 const sortOptions = [
   { value: 'updated', label: 'Last Updated' },
@@ -463,18 +487,22 @@ async function duplicateSelectedBook() {
   activeMenuBook.value = null
 }
 
-async function deleteSelectedBook() {
-  if (!activeMenuBook.value) {
-    return
+function deleteSelectedBook() {
+  bookToDelete.value = booksStore.getBookById(activeMenuBook.value)
+  if (bookToDelete.value) {
+    showDeleteConfirm.value = true
   }
-
-  const removed = await booksStore.removeBook(activeMenuBook.value)
-  if (!removed) {
-    toast.error('Could not delete book')
-    return
-  }
-  toast.success('Book deleted')
   activeMenuBook.value = null
+}
+
+async function confirmDeleteBook() {
+  if (await booksStore.removeBook(bookToDelete.value.id)) {
+    toast.success('Book deleted')
+    showDeleteConfirm.value = false
+    bookToDelete.value = null
+  } else {
+    toast.error('Could not delete book')
+  }
 }
 
 function openBookTransfer(mode) {
